@@ -3,12 +3,17 @@ package com.wojtek.holds
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -16,11 +21,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
+import kotlin.math.max
+import kotlin.math.min
 import com.wojtek.holds.model.Hold
 import com.wojtek.holds.model.HoldConfiguration
 import holds.composeapp.generated.resources.Res
@@ -170,6 +178,7 @@ private fun ClimbingWallContent(
             modifier = Modifier
                 .fillMaxSize()
                 .weight(1f)
+                .clipToBounds()
         ) {
             InteractiveClimbingWall(
                 configuration = configuration,
@@ -191,21 +200,27 @@ private fun ControlPanel(
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp
     ) {
-        Text(
-            text = "Selected: $selectedCount / $totalCount",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = onClearClick) { Text("Clear") }
-            Button(onClick = onSaveClick) { Text("Save") }
-            Button(onClick = onLoadClick) { Text("Load") }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Selected: $selectedCount / $totalCount",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = onClearClick) { Text("Clear") }
+                Button(onClick = onSaveClick) { Text("Save") }
+                Button(onClick = onLoadClick) { Text("Load") }
+            }
         }
     }
 }
@@ -214,7 +229,7 @@ private fun ControlPanel(
  * Interactive climbing wall display with hold overlays.
  *
  * Displays the wall image with polygon overlays for each hold.
- * Handles click detection and responsive resizing.
+ * Handles click detection, zoom, pan, and responsive resizing.
  */
 @Composable
 private fun InteractiveClimbingWall(
@@ -224,7 +239,12 @@ private fun InteractiveClimbingWall(
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
-    // Calculate display parameters based on container size
+    // Zoom and pan state
+    var scale by remember { mutableStateOf(1f) }
+    var offsetX by remember { mutableStateOf(0f) }
+    var offsetY by remember { mutableStateOf(0f) }
+
+    // Calculate display parameters based on container size (without zoom/pan)
     val displayParams = remember(containerSize, configuration) {
         calculateDisplayParameters(containerSize, configuration)
     }
@@ -235,18 +255,62 @@ private fun InteractiveClimbingWall(
             .onSizeChanged { size -> containerSize = size },
         contentAlignment = Alignment.Center
     ) {
-        // Background wall image
-        WallImage()
+        // Content box that contains both image and overlays with zoom and pan applied
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer(
+                    scaleX = scale,
+                    scaleY = scale,
+                    translationX = offsetX,
+                    translationY = offsetY,
+                    clip = true
+                )
+                .pointerInput(scale) {
+                    detectDragGestures { change, dragAmount ->
+                        if (scale > 1f) {
+                            change.consume()
+                            offsetX += dragAmount.x
+                            offsetY += dragAmount.y
+                        }
+                    }
+                }
+        ) {
+            // Background wall image
+            WallImage()
 
-        // Hold overlays
-        if (displayParams.isValid) {
-            HoldOverlays(
-                configuration = configuration,
-                selectedHoldIds = selectedHoldIds,
-                displayParams = displayParams,
-                onHoldClick = onHoldClick
-            )
+            // Hold overlays
+            if (displayParams.isValid) {
+                HoldOverlays(
+                    configuration = configuration,
+                    selectedHoldIds = selectedHoldIds,
+                    displayParams = displayParams,
+                    scale = scale,
+                    onHoldClick = onHoldClick
+                )
+            }
         }
+
+        // Zoom controls
+        ZoomControls(
+            scale = scale,
+            onZoomIn = {
+                scale = min(scale * 1.2f, 5f)
+            },
+            onZoomOut = {
+                scale = max(scale / 1.2f, 1f)
+                // Reset pan when zooming out to minimum
+                if (scale <= 1f) {
+                    offsetX = 0f
+                    offsetY = 0f
+                }
+            },
+            onReset = {
+                scale = 1f
+                offsetX = 0f
+                offsetY = 0f
+            }
+        )
     }
 }
 
@@ -323,13 +387,16 @@ private fun HoldOverlays(
     configuration: HoldConfiguration,
     selectedHoldIds: Set<Int>,
     displayParams: DisplayParameters,
+    scale: Float,
     onHoldClick: (Int) -> Unit
 ) {
     Canvas(
         modifier = Modifier
             .fillMaxSize()
-            .pointerInput(displayParams) {
+            .pointerInput(displayParams, scale) {
                 detectTapGestures { tapOffset ->
+                    // Only process clicks when not significantly zoomed
+                    // or adjust logic if needed
                     findClickedHold(
                         tapOffset = tapOffset,
                         holds = configuration.holds,
@@ -531,6 +598,62 @@ private fun createHoldPath(
         }
 
         close()
+    }
+}
+
+/**
+ * Zoom controls overlay with buttons for zoom in, zoom out, and reset.
+ */
+@Composable
+private fun BoxScope.ZoomControls(
+    scale: Float,
+    onZoomIn: () -> Unit,
+    onZoomOut: () -> Unit,
+    onReset: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .align(Alignment.BottomEnd)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        // Zoom In button
+        FloatingActionButton(
+            onClick = onZoomIn,
+            modifier = Modifier.size(56.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Zoom In"
+            )
+        }
+
+        // Zoom Out button
+        FloatingActionButton(
+            onClick = onZoomOut,
+            modifier = Modifier.size(56.dp),
+            containerColor = MaterialTheme.colorScheme.primary
+        ) {
+            Icon(
+                imageVector = Icons.Default.Remove,
+                contentDescription = "Zoom Out"
+            )
+        }
+
+        // Reset button (only show when zoomed)
+        if (scale > 1f) {
+            FloatingActionButton(
+                onClick = onReset,
+                modifier = Modifier.size(56.dp),
+                containerColor = MaterialTheme.colorScheme.secondary
+            ) {
+                Text(
+                    text = "1×",
+                    style = MaterialTheme.typography.titleMedium
+                )
+            }
+        }
     }
 }
 
