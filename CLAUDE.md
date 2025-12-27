@@ -21,9 +21,19 @@ holds/
 │   │   ├── webMain/         # Web-specific code (shared between JS and Wasm)
 │   │   │   ├── kotlin/com/wojtek/holds/
 │   │   │   │   ├── App.kt                # Main entry point
-│   │   │   │   ├── ClimbingWallApp.kt    # Main UI & interaction logic
+│   │   │   │   ├── ClimbingWallApp.kt    # Default app implementation
 │   │   │   │   ├── LocalStorage.kt       # Save/load functionality
 │   │   │   │   ├── UrlSync.kt            # URL-based state sharing
+│   │   │   │   ├── components/           # Reusable UI components
+│   │   │   │   │   ├── ClimbingWallView.kt   # Core interactive wall component
+│   │   │   │   │   ├── ControlPanel.kt       # Control panel component
+│   │   │   │   │   └── ZoomControls.kt       # Zoom control components
+│   │   │   │   ├── state/                # State management
+│   │   │   │   │   └── HoldSelectionManager.kt  # Selection state manager
+│   │   │   │   ├── utils/                # Utility functions
+│   │   │   │   │   └── ConfigurationLoader.kt   # Config loading utilities
+│   │   │   │   ├── examples/             # Example implementations
+│   │   │   │   │   └── CustomClimbingApp.kt     # Sample custom apps
 │   │   │   │   └── model/
 │   │   │   │       └── HoldConfiguration.kt  # Data models
 │   │   │   └── composeResources/
@@ -42,7 +52,8 @@ holds/
 ├── settings.gradle.kts
 ├── .gitignore
 ├── README.md                # User documentation
-└── CLAUDE.md                # This file - Developer documentation
+├── CLAUDE.md                # This file - Developer documentation
+└── COMPONENTS.md            # Component library documentation
 ```
 
 ## Technology Stack
@@ -165,21 +176,88 @@ Both commands support `--continuous` flag for automatic reload on file changes:
 ## Application Features
 
 ### Current Implementation
+- ✅ **Modular component architecture**: Reusable components for building custom apps
 - ✅ **Polygon-based overlays**: Holds are rendered as polygons matching their exact shape
 - ✅ **Interactive selection**: Click to select/deselect holds (green when selected, red when not)
 - ✅ **Visual feedback**: Semi-transparent overlays with colored borders
+- ✅ **Zoom and pan**: Zoom in/out and pan across the wall
+- ✅ **Advanced state management**: HoldSelectionManager with undo/redo support
 - ✅ **Persistent storage**: Save/load selections using browser localStorage
 - ✅ **URL-based sharing**: Share selections via URL (e.g., `#holds=1,5,12,23`)
 - ✅ **Responsive design**: Automatically adjusts to window resizing
 - ✅ **Accurate hit detection**: Point-in-polygon using ray casting algorithm
 - ✅ **Hold counter**: Shows "Selected: X / Y"
+- ✅ **Customizable styling**: Colors, transparency, zoom levels
 
 ### User Controls
 - **Click hold**: Toggle selection (red ↔ green)
+- **Drag**: Pan across the wall (when zoomed in)
+- **Zoom buttons**: Zoom in/out with floating action buttons
 - **Clear button**: Deselect all holds
 - **Save button**: Store selection to localStorage
 - **Load button**: Restore saved selection
 - **Share URL**: Copy the browser URL to share your current selection with others
+
+## Component-Based Architecture
+
+The application is now built using reusable components that can be composed to create custom climbing wall applications. See [COMPONENTS.md](COMPONENTS.md) for detailed documentation.
+
+### Core Components
+
+1. **ClimbingWallView** - The main interactive climbing wall component
+   - Displays wall image with polygon-based hold overlays
+   - Handles click detection, zoom, and pan
+   - Fully customizable colors, transparency, and zoom levels
+
+2. **ControlPanel** - Control panel with selection counter and action buttons
+   - Configurable buttons (Clear, Save, Load)
+   - Support for custom additional actions
+   - Minimal variant available (MinimalControlPanel)
+
+3. **ZoomControls** - Zoom control UI components
+   - Multiple styles available (Default, Compact, WithPercentage)
+   - Custom zoom controls can be provided
+
+4. **HoldSelectionManager** - Advanced state management
+   - Undo/redo support with history
+   - Bulk operations (select/deselect multiple, invert)
+   - Validation and callbacks
+
+5. **ConfigurationLoader** - Utilities for loading hold configuration
+   - Composable functions for loading configuration
+   - Error handling and loading states
+
+### Example Custom Apps
+
+See `composeApp/src/webMain/kotlin/com/wojtek/holds/examples/CustomClimbingApp.kt` for complete working examples:
+
+- **MinimalClimbingApp** - Minimal UI with just counter and compact controls
+- **AdvancedClimbingApp** - Undo/redo, invert selection, state callbacks
+- **ComparisonClimbingApp** - Side-by-side comparison of two routes
+
+### Building Custom Apps
+
+```kotlin
+@Composable
+fun MyCustomApp() {
+    val configurationResult = rememberHoldConfiguration()
+    var selectedHolds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+
+    when (val result = configurationResult.value) {
+        is ConfigurationLoadResult.Success -> {
+            ClimbingWallView(
+                configuration = result.configuration,
+                wallImagePainter = painterResource(Res.drawable.wall),
+                selectedHoldIds = selectedHolds,
+                onHoldClick = { holdId -> /* handle click */ },
+                selectedColor = Color.Blue,  // Custom colors
+                maxZoom = 8f                 // Custom zoom limit
+            )
+        }
+        // ... handle loading/error states
+    }
+}
+```
 
 ## Technical Implementation Details
 
@@ -218,9 +296,28 @@ Both commands support `--continuous` flag for automatic reload on file changes:
 - **Root Package**: `com.wojtek.holds`
 - **Main Components**:
   - `App.kt` - Application entry point
-  - `ClimbingWallApp.kt` - Main UI composable with hold rendering
-  - `LocalStorage.kt` - Browser storage integration
+  - `ClimbingWallApp.kt` - Default application implementation
+  - `LocalStorage.kt` - Browser storage integration (localStorage)
+  - `UrlSync.kt` - URL-based state sharing utilities
   - `model/HoldConfiguration.kt` - Data models matching preprocessor output
+
+#### Components Package (`com.wojtek.holds.components`)
+Reusable UI components for building custom climbing wall applications:
+  - `ClimbingWallView.kt` - Core interactive wall component with zoom/pan
+  - `ControlPanel.kt` - Control panel with counter and action buttons
+  - `ZoomControls.kt` - Zoom control UI components (multiple styles)
+
+#### State Package (`com.wojtek.holds.state`)
+State management utilities:
+  - `HoldSelectionManager.kt` - Advanced selection state manager with undo/redo
+
+#### Utils Package (`com.wojtek.holds.utils`)
+Utility functions and helpers:
+  - `ConfigurationLoader.kt` - Configuration loading utilities with error handling
+
+#### Examples Package (`com.wojtek.holds.examples`)
+Example implementations demonstrating component usage:
+  - `CustomClimbingApp.kt` - Sample custom apps (Minimal, Advanced, Comparison)
 
 ## Data Models
 
@@ -257,13 +354,24 @@ data class Point(
 1. **Preprocessor changes**: Regenerate `holds.json` after modifying hold detection
 2. **Data model changes**: Update BOTH preprocessor and web app models (they're separate)
 3. **Image changes**: Place in `composeApp/src/webMain/composeResources/drawable/`
-4. **Dependencies**: Ensure all are installed before finalizing changes
-5. **Continuous build**: Use `--continuous` flag for automatic reload during development
+4. **Component changes**: Update components in `com.wojtek.holds.components` package
+5. **Custom apps**: Add new examples to `com.wojtek.holds.examples` package
+6. **Dependencies**: Ensure all are installed before finalizing changes
+7. **Continuous build**: Use `--continuous` flag for automatic reload during development
 
 ### Important Files
 - `.gitignore` - Excludes `kotlin-js-store/`, `node_modules/`, build outputs
 - `holds.json` - Generated by preprocessor, loaded by web app
 - `LocalStorage.kt` - Web-only file (uses kotlinx.browser APIs)
+- `COMPONENTS.md` - Component library documentation for developers
+
+### Building Custom Apps
+To create a custom climbing wall application:
+1. Use `ClimbingWallView` as the core component
+2. Add your own UI components (control panels, toolbars, etc.)
+3. Choose between simple state management (`remember`) or advanced (`HoldSelectionManager`)
+4. Customize colors, zoom levels, and behaviors via component parameters
+5. See examples in `com.wojtek.holds.examples.CustomClimbingApp.kt`
 
 ### Platform-Specific Code
 - **webMain**: Code shared between JS and Wasm targets
@@ -289,13 +397,25 @@ data class Point(
 - Issues: [YouTrack CMP Project](https://youtrack.jetbrains.com/newIssue?project=CMP)
 
 ## Future Enhancements (Potential)
-- Multiple hold selection modes (routes, problems)
-- Color-coded difficulty levels
-- Export/import routes as files
-- Multi-wall support
-- Route naming and descriptions
-- Cloud sync for selections
-- Mobile app version
+
+### Application Features
+- Multiple hold selection modes (routes, problems, training circuits)
+- Color-coded difficulty levels or route grades
+- Export/import routes as files (JSON, CSV)
+- Multi-wall support (tabs or wall picker)
+- Route naming, descriptions, and metadata
+- Cloud sync for selections (Firebase, Supabase)
+- Mobile app version (Android/iOS with Compose Multiplatform)
+- 3D wall visualization
+
+### Component Enhancements
+- Animation for hold selection/deselection
+- Touch gesture support for mobile (pinch-to-zoom)
+- Hold highlighting on hover
+- Custom hold shapes (not just polygons)
+- Multiple selection modes (box select, lasso select)
+- Hold filtering (by size, type, color)
+- Accessibility improvements (keyboard navigation, screen reader support)
 
 ---
 *Last Updated: 2025-12-27*
