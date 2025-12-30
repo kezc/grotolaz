@@ -6,9 +6,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.unit.dp
 import com.wojtek.holds.components.ClimbingWallView
-import com.wojtek.holds.components.ControlPanel
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
 import holds.composeapp.generated.resources.Res
@@ -107,7 +106,7 @@ private fun BoxScope.ErrorDisplay(message: String) {
 }
 
 /**
- * Main content showing the control panel and climbing wall.
+ * Main content showing the climbing wall with floating controls.
  */
 @Composable
 private fun ClimbingWallContent(
@@ -124,38 +123,39 @@ private fun ClimbingWallContent(
     onToggleLock: () -> Unit,
     onHoldClick: (Int) -> Unit
 ) {
-    Column(modifier = Modifier.fillMaxSize()) {
-        ControlPanel(
-            selectedCount = selectedHoldIds.size,
-            totalCount = configuration.holds.size,
-            onClearClick = onClearClick,
-            showSaveLoad = false,
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Main climbing wall view
+        ClimbingWallView(
+            configuration = configuration,
+            wallImagePainter = painterResource(Res.drawable.wall),
+            selectedHoldIds = selectedHoldIds,
+            onHoldClick = onHoldClick,
+            emptyWallImagePainter = painterResource(Res.drawable.empty),
             showEmptyWall = showEmptyWall,
-            onToggleEmptyWall = onToggleEmptyWall,
             darkenNonSelected = darkenNonSelected,
-            onToggleDarkenNonSelected = onToggleDarkenNonSelected,
             showBorders = showBorders,
-            onToggleBorders = onToggleBorders,
             isLocked = isLocked,
-            onToggleLock = onToggleLock
+            useFloatingControls = true,
+            onToggleLock = onToggleLock,
+            onToggleEmptyWall = onToggleEmptyWall,
+            onToggleDarkenNonSelected = onToggleDarkenNonSelected,
+            onToggleBorders = onToggleBorders,
+            modifier = Modifier.fillMaxSize()
         )
 
-        Box(
+        // Selection counter overlay (top-left)
+        Surface(
             modifier = Modifier
-                .fillMaxSize()
-                .weight(1f)
-                .clipToBounds()
+                .align(Alignment.TopStart)
+                .padding(16.dp),
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+            tonalElevation = 4.dp,
+            shape = MaterialTheme.shapes.medium
         ) {
-            ClimbingWallView(
-                configuration = configuration,
-                wallImagePainter = painterResource(Res.drawable.wall),
-                selectedHoldIds = selectedHoldIds,
-                onHoldClick = onHoldClick,
-                emptyWallImagePainter = painterResource(Res.drawable.empty),
-                showEmptyWall = showEmptyWall,
-                darkenNonSelected = darkenNonSelected,
-                showBorders = showBorders,
-                isLocked = isLocked
+            Text(
+                text = "Selected: ${selectedHoldIds.size} / ${configuration.holds.size}",
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
         }
     }

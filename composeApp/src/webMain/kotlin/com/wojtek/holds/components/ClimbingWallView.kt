@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -58,6 +59,11 @@ import kotlin.math.min
  * @param darkenNonSelected Whether to darken non-selected holds (default: false)
  * @param showBorders Whether to show borders on selected holds (default: true)
  * @param isLocked Whether clicking holds is disabled (default: false)
+ * @param onToggleLock Optional callback when lock toggle is clicked (for floating controls)
+ * @param onToggleEmptyWall Optional callback when empty wall toggle is clicked (for floating controls)
+ * @param onToggleDarkenNonSelected Optional callback when darken toggle is clicked (for floating controls)
+ * @param onToggleBorders Optional callback when border toggle is clicked (for floating controls)
+ * @param useFloatingControls Whether to use floating controls instead of default zoom controls (default: false)
  */
 @Composable
 fun ClimbingWallView(
@@ -79,7 +85,12 @@ fun ClimbingWallView(
     showEmptyWall: Boolean = false,
     darkenNonSelected: Boolean = false,
     showBorders: Boolean = true,
-    isLocked: Boolean = false
+    isLocked: Boolean = false,
+    onToggleLock: (() -> Unit)? = null,
+    onToggleEmptyWall: (() -> Unit)? = null,
+    onToggleDarkenNonSelected: (() -> Unit)? = null,
+    onToggleBorders: (() -> Unit)? = null,
+    useFloatingControls: Boolean = false
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -125,12 +136,41 @@ fun ClimbingWallView(
                     translationY = offsetY,
                     clip = true
                 )
-                .pointerInput(scale) {
-                    detectDragGestures { change, dragAmount ->
+                .pointerInput(minZoom, maxZoom) {
+                    // Detect pinch-to-zoom and pan gestures
+                    detectTransformGestures { centroid, pan, zoom, rotation ->
+                        // Apply zoom with constraints
+                        val newScale = (scale * zoom).coerceIn(minZoom, maxZoom)
+
+                        // Calculate zoom factor applied
+                        val zoomFactor = newScale / scale
+
+                        // Adjust pan offset to zoom towards the centroid
+                        if (zoomFactor != 1f) {
+                            // Calculate the difference between centroid and current center
+                            val centerX = size.width / 2f
+                            val centerY = size.height / 2f
+                            val deltaX = centroid.x - centerX
+                            val deltaY = centroid.y - centerY
+
+                            // Adjust offsets to zoom towards the gesture centroid
+                            offsetX = (offsetX + deltaX) * zoomFactor - deltaX
+                            offsetY = (offsetY + deltaY) * zoomFactor - deltaY
+                        }
+
+                        // Update scale
+                        scale = newScale
+
+                        // Apply panning (only when zoomed in)
                         if (scale > 1f) {
-                            change.consume()
-                            offsetX += dragAmount.x
-                            offsetY += dragAmount.y
+                            offsetX += pan.x
+                            offsetY += pan.y
+                        }
+
+                        // Reset pan when at minimum zoom
+                        if (scale <= minZoom) {
+                            offsetX = 0f
+                            offsetY = 0f
                         }
                     }
                 }
@@ -252,6 +292,23 @@ fun ClimbingWallView(
 
             if (zoomControlsContent != null) {
                 zoomControlsContent(zoomState, zoomCallbacks)
+            } else if (useFloatingControls &&
+                       onToggleLock != null &&
+                       onToggleEmptyWall != null &&
+                       onToggleDarkenNonSelected != null &&
+                       onToggleBorders != null) {
+                FloatingControls(
+                    zoomState = zoomState,
+                    zoomCallbacks = zoomCallbacks,
+                    isLocked = isLocked,
+                    onToggleLock = onToggleLock,
+                    showEmptyWall = showEmptyWall,
+                    onToggleEmptyWall = onToggleEmptyWall,
+                    darkenNonSelected = darkenNonSelected,
+                    onToggleDarkenNonSelected = onToggleDarkenNonSelected,
+                    showBorders = showBorders,
+                    onToggleBorders = onToggleBorders
+                )
             } else {
                 DefaultZoomControls(zoomState, zoomCallbacks)
             }
