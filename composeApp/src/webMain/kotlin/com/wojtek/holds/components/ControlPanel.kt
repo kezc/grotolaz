@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
  * @param showSaveLoad Whether to show Save and Load buttons (default: true)
  * @param showEmptyWall Whether to show empty wall mode (default: false)
  * @param onToggleEmptyWall Callback when empty wall toggle button is clicked
+ * @param darkenNonSelected Whether to darken non-selected holds (default: false)
+ * @param onToggleDarkenNonSelected Callback when darken non-selected toggle is clicked
+ * @param showBorders Whether to show borders on selected holds (default: true)
+ * @param onToggleBorders Callback when border toggle is clicked
  * @param additionalActions Optional additional action buttons composable
  */
 @Composable
@@ -34,6 +38,10 @@ fun ControlPanel(
     showSaveLoad: Boolean = true,
     showEmptyWall: Boolean = false,
     onToggleEmptyWall: () -> Unit = {},
+    darkenNonSelected: Boolean = false,
+    onToggleDarkenNonSelected: () -> Unit = {},
+    showBorders: Boolean = true,
+    onToggleBorders: () -> Unit = {},
     additionalActions: @Composable (RowScope.() -> Unit)? = null
 ) {
     Surface(
@@ -73,6 +81,36 @@ fun ControlPanel(
                     }
                 ) {
                     Text(if (showEmptyWall) "Show Full Wall" else "Show Selected Only")
+                }
+
+                Button(
+                    onClick = onToggleDarkenNonSelected,
+                    colors = if (darkenNonSelected) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                ) {
+                    Text(if (darkenNonSelected) "Brighten All" else "Darken Unselected")
+                }
+
+                Button(
+                    onClick = onToggleBorders,
+                    colors = if (!showBorders) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                ) {
+                    Text(if (showBorders) "Borders" else "No Borders")
                 }
 
                 additionalActions?.invoke(this)

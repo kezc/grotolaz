@@ -15,6 +15,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -53,6 +55,8 @@ import kotlin.math.min
  * @param zoomControlsContent Optional custom zoom controls composable
  * @param emptyWallImagePainter Optional painter for empty wall (without holds)
  * @param showEmptyWall Whether to show empty wall with only selected holds (default: false)
+ * @param darkenNonSelected Whether to darken non-selected holds (default: false)
+ * @param showBorders Whether to show borders on selected holds (default: true)
  */
 @Composable
 fun ClimbingWallView(
@@ -71,7 +75,9 @@ fun ClimbingWallView(
     zoomStep: Float = 1.2f,
     zoomControlsContent: @Composable ((ZoomState, ZoomCallbacks) -> Unit)? = null,
     emptyWallImagePainter: Painter? = null,
-    showEmptyWall: Boolean = false
+    showEmptyWall: Boolean = false,
+    darkenNonSelected: Boolean = false,
+    showBorders: Boolean = true
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -83,6 +89,21 @@ fun ClimbingWallView(
     // Calculate display parameters based on container size (without zoom/pan)
     val displayParams = remember(containerSize, configuration) {
         calculateDisplayParameters(containerSize, configuration)
+    }
+
+    // Pre-calculate and cache the dark mask path for background
+    // Only exclude all holds from this mask (not dependent on selection)
+    val backgroundMaskPath = remember(displayParams, configuration, containerSize) {
+        if (displayParams.isValid && containerSize.width > 0 && containerSize.height > 0) {
+            createDarkMaskPath(
+                holds = configuration.holds,
+                displayParams = displayParams,
+                canvasWidth = containerSize.width.toFloat(),
+                canvasHeight = containerSize.height.toFloat()
+            )
+        } else {
+            null
+        }
     }
 
     Box(
@@ -164,24 +185,39 @@ fun ClimbingWallView(
                             }
                         }
                 ) {
-                    configuration.holds.forEach { hold ->
-                        // In empty wall mode, only show overlays for selected holds
-                        val shouldDraw = if (showEmptyWall) {
-                            hold.id in selectedHoldIds
-                        } else {
-                            true
+                    if (!showEmptyWall) {
+                        // First, draw a dark mask over the background (excluding all holds)
+                        if (backgroundMaskPath != null) {
+                            drawPath(
+                                path = backgroundMaskPath,
+                                color = Color.Black.copy(alpha = 0.4f),
+                                style = Fill
+                            )
                         }
 
-                        if (shouldDraw) {
-                            drawHoldOverlay(
-                                hold = hold,
-                                isSelected = hold.id in selectedHoldIds,
-                                displayParams = displayParams,
-                                selectedColor = selectedColor,
-                                unselectedColor = unselectedColor,
-                                selectedAlpha = selectedAlpha,
-                                unselectedAlpha = unselectedAlpha
-                            )
+                        // If darkening non-selected holds, draw dark overlays on them
+                        if (darkenNonSelected) {
+                            configuration.holds.forEach { hold ->
+                                if (hold.id !in selectedHoldIds) {
+                                    drawHoldDarkOverlay(
+                                        hold = hold,
+                                        displayParams = displayParams
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Draw borders on selected holds if enabled
+                    if (showBorders) {
+                        configuration.holds.forEach { hold ->
+                            if (hold.id in selectedHoldIds) {
+                                drawHoldBorder(
+                                    hold = hold,
+                                    displayParams = displayParams,
+                                    borderColor = selectedColor
+                                )
+                            }
                         }
                     }
                 }
@@ -369,85 +405,110 @@ internal fun isPointInPolygon(
 }
 
 /**
- * Draws a single hold overlay (polygon or rectangle).
+ * Creates a dark mask path that covers the entire canvas except where holds are located.
+ * This is cached and only recalculated when display parameters or configuration changes.
  */
-internal fun DrawScope.drawHoldOverlay(
-    hold: Hold,
-    isSelected: Boolean,
+internal fun createDarkMaskPath(
+    holds: List<Hold>,
     displayParams: DisplayParameters,
-    selectedColor: Color,
-    unselectedColor: Color,
-    selectedAlpha: Float,
-    unselectedAlpha: Float
-) {
-    val color = if (isSelected) selectedColor else unselectedColor
-    val alpha = if (isSelected) selectedAlpha else unselectedAlpha
+    canvasWidth: Float,
+    canvasHeight: Float
+): Path {
+    // Create a path covering the entire canvas
+    val fullCanvasPath = Path().apply {
+        addRect(Rect(0f, 0f, canvasWidth, canvasHeight))
+    }
 
+    // Create a combined path of all holds
+    val holdsPaths = Path()
+    holds.forEach { hold ->
+        val holdPath = if (hold.polygon.isNotEmpty()) {
+            createHoldPath(hold.polygon, displayParams)
+        } else {
+            Path().apply {
+                addRect(
+                    Rect(
+                        left = hold.x * displayParams.scaleX + displayParams.offsetX,
+                        top = hold.y * displayParams.scaleY + displayParams.offsetY,
+                        right = (hold.x + hold.width) * displayParams.scaleX + displayParams.offsetX,
+                        bottom = (hold.y + hold.height) * displayParams.scaleY + displayParams.offsetY
+                    )
+                )
+            }
+        }
+        holdsPaths.op(holdsPaths, holdPath, PathOperation.Union)
+    }
+
+    // Subtract holds from the full canvas to get the mask area
+    val maskPath = Path()
+    maskPath.op(fullCanvasPath, holdsPaths, PathOperation.Difference)
+
+    return maskPath
+}
+
+/**
+ * Draws a dark overlay on a hold (for darkening non-selected holds).
+ */
+internal fun DrawScope.drawHoldDarkOverlay(
+    hold: Hold,
+    displayParams: DisplayParameters
+) {
     if (hold.polygon.isNotEmpty()) {
-        drawPolygonHold(hold, color, alpha, displayParams)
+        val path = createHoldPath(hold.polygon, displayParams)
+        drawPath(
+            path = path,
+            color = Color.Black.copy(alpha = 0.4f),
+            style = Fill
+        )
     } else {
-        drawRectangleHold(hold, color, alpha, displayParams)
+        val topLeft = Offset(
+            x = hold.x * displayParams.scaleX + displayParams.offsetX,
+            y = hold.y * displayParams.scaleY + displayParams.offsetY
+        )
+        val size = Size(
+            width = hold.width * displayParams.scaleX,
+            height = hold.height * displayParams.scaleY
+        )
+        drawRect(
+            color = Color.Black.copy(alpha = 0.4f),
+            topLeft = topLeft,
+            size = size,
+            style = Fill
+        )
     }
 }
 
 /**
- * Draws a polygon-based hold overlay.
+ * Draws a subtle border on a hold.
  */
-internal fun DrawScope.drawPolygonHold(
+internal fun DrawScope.drawHoldBorder(
     hold: Hold,
-    color: Color,
-    alpha: Float,
-    displayParams: DisplayParameters
+    displayParams: DisplayParameters,
+    borderColor: Color
 ) {
-    val path = createHoldPath(hold.polygon, displayParams)
-
-    // Fill
-    drawPath(
-        path = path,
-        color = color.copy(alpha = alpha),
-        style = Fill
-    )
-
-    // Border
-    drawPath(
-        path = path,
-        color = color,
-        style = Stroke(width = 2f)
-    )
-}
-
-/**
- * Draws a rectangle-based hold overlay (fallback).
- */
-internal fun DrawScope.drawRectangleHold(
-    hold: Hold,
-    color: Color,
-    alpha: Float,
-    displayParams: DisplayParameters
-) {
-    val topLeft = Offset(
-        x = hold.x * displayParams.scaleX + displayParams.offsetX,
-        y = hold.y * displayParams.scaleY + displayParams.offsetY
-    )
-    val size = Size(
-        width = hold.width * displayParams.scaleX,
-        height = hold.height * displayParams.scaleY
-    )
-
-    // Fill
-    drawRect(
-        color = color.copy(alpha = alpha),
-        topLeft = topLeft,
-        size = size
-    )
-
-    // Border
-    drawRect(
-        color = color,
-        topLeft = topLeft,
-        size = size,
-        style = Stroke(width = 2f)
-    )
+    if (hold.polygon.isNotEmpty()) {
+        val path = createHoldPath(hold.polygon, displayParams)
+        drawPath(
+            path = path,
+            color = borderColor,
+            style = Stroke(width = 2f)
+        )
+    } else {
+        val topLeft = Offset(
+            x = hold.x * displayParams.scaleX + displayParams.offsetX,
+            y = hold.y * displayParams.scaleY + displayParams.offsetY
+        )
+        val size = Size(
+            width = hold.width * displayParams.scaleX,
+            height = hold.height * displayParams.scaleY
+        )
+        drawRect(
+            color = borderColor,
+            topLeft = topLeft,
+            size = size,
+            style = Stroke(width = 2f)
+        )
+    }
 }
 
 /**

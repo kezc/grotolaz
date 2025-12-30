@@ -27,6 +27,8 @@ import org.jetbrains.compose.resources.painterResource
 fun ClimbingWallApp() {
     var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var showEmptyWall by remember { mutableStateOf(false) }
+    var darkenNonSelected by remember { mutableStateOf(false) }
+    var showBorders by remember { mutableStateOf(true) }
     val configurationResult = rememberHoldConfiguration()
     val scope = rememberCoroutineScope()
 
@@ -60,6 +62,8 @@ fun ClimbingWallApp() {
                     configuration = result.configuration,
                     selectedHoldIds = selectedHoldIds,
                     showEmptyWall = showEmptyWall,
+                    darkenNonSelected = darkenNonSelected,
+                    showBorders = showBorders,
                     onClearClick = { selectedHoldIds = emptySet() },
                     onSaveClick = {
                         scope.launch {
@@ -74,6 +78,8 @@ fun ClimbingWallApp() {
                         }
                     },
                     onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
+                    onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
+                    onToggleBorders = { showBorders = !showBorders },
                     onHoldClick = { holdId ->
                         selectedHoldIds = if (holdId in selectedHoldIds) {
                             selectedHoldIds - holdId
@@ -115,10 +121,14 @@ private fun ClimbingWallContent(
     configuration: com.wojtek.holds.model.HoldConfiguration,
     selectedHoldIds: Set<Int>,
     showEmptyWall: Boolean,
+    darkenNonSelected: Boolean,
+    showBorders: Boolean,
     onClearClick: () -> Unit,
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
     onToggleEmptyWall: () -> Unit,
+    onToggleDarkenNonSelected: () -> Unit,
+    onToggleBorders: () -> Unit,
     onHoldClick: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -129,7 +139,11 @@ private fun ClimbingWallContent(
             onSaveClick = onSaveClick,
             onLoadClick = onLoadClick,
             showEmptyWall = showEmptyWall,
-            onToggleEmptyWall = onToggleEmptyWall
+            onToggleEmptyWall = onToggleEmptyWall,
+            darkenNonSelected = darkenNonSelected,
+            onToggleDarkenNonSelected = onToggleDarkenNonSelected,
+            showBorders = showBorders,
+            onToggleBorders = onToggleBorders
         )
 
         Box(
@@ -144,7 +158,9 @@ private fun ClimbingWallContent(
                 selectedHoldIds = selectedHoldIds,
                 onHoldClick = onHoldClick,
                 emptyWallImagePainter = painterResource(Res.drawable.empty),
-                showEmptyWall = showEmptyWall
+                showEmptyWall = showEmptyWall,
+                darkenNonSelected = darkenNonSelected,
+                showBorders = showBorders
             )
         }
     }
