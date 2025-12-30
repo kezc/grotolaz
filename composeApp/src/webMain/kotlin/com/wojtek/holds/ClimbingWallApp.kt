@@ -14,7 +14,6 @@ import com.wojtek.holds.utils.rememberHoldConfiguration
 import holds.composeapp.generated.resources.Res
 import holds.composeapp.generated.resources.empty
 import holds.composeapp.generated.resources.wall
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
 
 /**
@@ -30,7 +29,6 @@ fun ClimbingWallApp() {
     var darkenNonSelected by remember { mutableStateOf(false) }
     var showBorders by remember { mutableStateOf(true) }
     val configurationResult = rememberHoldConfiguration()
-    val scope = rememberCoroutineScope()
 
     // Load selected holds from URL after config is loaded
     LaunchedEffect(configurationResult.value) {
@@ -65,18 +63,6 @@ fun ClimbingWallApp() {
                     darkenNonSelected = darkenNonSelected,
                     showBorders = showBorders,
                     onClearClick = { selectedHoldIds = emptySet() },
-                    onSaveClick = {
-                        scope.launch {
-                            saveSelectedHolds(selectedHoldIds.toList())
-                        }
-                    },
-                    onLoadClick = {
-                        scope.launch {
-                            loadSelectedHolds()?.let { loaded ->
-                                selectedHoldIds = loaded.toSet()
-                            }
-                        }
-                    },
                     onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
                     onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
                     onToggleBorders = { showBorders = !showBorders },
@@ -124,8 +110,6 @@ private fun ClimbingWallContent(
     darkenNonSelected: Boolean,
     showBorders: Boolean,
     onClearClick: () -> Unit,
-    onSaveClick: () -> Unit,
-    onLoadClick: () -> Unit,
     onToggleEmptyWall: () -> Unit,
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
@@ -136,8 +120,7 @@ private fun ClimbingWallContent(
             selectedCount = selectedHoldIds.size,
             totalCount = configuration.holds.size,
             onClearClick = onClearClick,
-            onSaveClick = onSaveClick,
-            onLoadClick = onLoadClick,
+            showSaveLoad = false,
             showEmptyWall = showEmptyWall,
             onToggleEmptyWall = onToggleEmptyWall,
             darkenNonSelected = darkenNonSelected,
