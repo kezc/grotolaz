@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
  * @param onLoadClick Callback when Load button is clicked
  * @param modifier Optional modifier for the component
  * @param showSaveLoad Whether to show Save and Load buttons (default: true)
+ * @param showEmptyWall Whether to show empty wall mode (default: false)
+ * @param onToggleEmptyWall Callback when empty wall toggle button is clicked
  * @param additionalActions Optional additional action buttons composable
  */
 @Composable
@@ -30,6 +32,8 @@ fun ControlPanel(
     onLoadClick: () -> Unit = {},
     modifier: Modifier = Modifier,
     showSaveLoad: Boolean = true,
+    showEmptyWall: Boolean = false,
+    onToggleEmptyWall: () -> Unit = {},
     additionalActions: @Composable (RowScope.() -> Unit)? = null
 ) {
     Surface(
@@ -54,6 +58,21 @@ fun ControlPanel(
                 if (showSaveLoad) {
                     Button(onClick = onSaveClick) { Text("Save") }
                     Button(onClick = onLoadClick) { Text("Load") }
+                }
+
+                Button(
+                    onClick = onToggleEmptyWall,
+                    colors = if (showEmptyWall) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                ) {
+                    Text(if (showEmptyWall) "Show Full Wall" else "Show Selected Only")
                 }
 
                 additionalActions?.invoke(this)

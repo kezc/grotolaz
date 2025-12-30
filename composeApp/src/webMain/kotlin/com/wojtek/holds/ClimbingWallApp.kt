@@ -12,6 +12,7 @@ import com.wojtek.holds.components.ControlPanel
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
 import holds.composeapp.generated.resources.Res
+import holds.composeapp.generated.resources.empty
 import holds.composeapp.generated.resources.wall
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.painterResource
@@ -25,6 +26,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun ClimbingWallApp() {
     var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
+    var showEmptyWall by remember { mutableStateOf(false) }
     val configurationResult = rememberHoldConfiguration()
     val scope = rememberCoroutineScope()
 
@@ -57,6 +59,7 @@ fun ClimbingWallApp() {
                 is ConfigurationLoadResult.Success -> ClimbingWallContent(
                     configuration = result.configuration,
                     selectedHoldIds = selectedHoldIds,
+                    showEmptyWall = showEmptyWall,
                     onClearClick = { selectedHoldIds = emptySet() },
                     onSaveClick = {
                         scope.launch {
@@ -70,6 +73,7 @@ fun ClimbingWallApp() {
                             }
                         }
                     },
+                    onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
                     onHoldClick = { holdId ->
                         selectedHoldIds = if (holdId in selectedHoldIds) {
                             selectedHoldIds - holdId
@@ -110,9 +114,11 @@ private fun BoxScope.ErrorDisplay(message: String) {
 private fun ClimbingWallContent(
     configuration: com.wojtek.holds.model.HoldConfiguration,
     selectedHoldIds: Set<Int>,
+    showEmptyWall: Boolean,
     onClearClick: () -> Unit,
     onSaveClick: () -> Unit,
     onLoadClick: () -> Unit,
+    onToggleEmptyWall: () -> Unit,
     onHoldClick: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -121,7 +127,9 @@ private fun ClimbingWallContent(
             totalCount = configuration.holds.size,
             onClearClick = onClearClick,
             onSaveClick = onSaveClick,
-            onLoadClick = onLoadClick
+            onLoadClick = onLoadClick,
+            showEmptyWall = showEmptyWall,
+            onToggleEmptyWall = onToggleEmptyWall
         )
 
         Box(
@@ -134,7 +142,9 @@ private fun ClimbingWallContent(
                 configuration = configuration,
                 wallImagePainter = painterResource(Res.drawable.wall),
                 selectedHoldIds = selectedHoldIds,
-                onHoldClick = onHoldClick
+                onHoldClick = onHoldClick,
+                emptyWallImagePainter = painterResource(Res.drawable.empty),
+                showEmptyWall = showEmptyWall
             )
         }
     }

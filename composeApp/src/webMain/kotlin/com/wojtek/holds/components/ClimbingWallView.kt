@@ -18,6 +18,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -49,6 +51,8 @@ import kotlin.math.min
  * @param maxZoom Maximum zoom level (default: 5f)
  * @param zoomStep Zoom step multiplier (default: 1.2f)
  * @param zoomControlsContent Optional custom zoom controls composable
+ * @param emptyWallImagePainter Optional painter for empty wall (without holds)
+ * @param showEmptyWall Whether to show empty wall with only selected holds (default: false)
  */
 @Composable
 fun ClimbingWallView(
@@ -65,7 +69,9 @@ fun ClimbingWallView(
     minZoom: Float = 1f,
     maxZoom: Float = 5f,
     zoomStep: Float = 1.2f,
-    zoomControlsContent: @Composable ((ZoomState, ZoomCallbacks) -> Unit)? = null
+    zoomControlsContent: @Composable ((ZoomState, ZoomCallbacks) -> Unit)? = null,
+    emptyWallImagePainter: Painter? = null,
+    showEmptyWall: Boolean = false
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -106,15 +112,44 @@ fun ClimbingWallView(
                     }
                 }
         ) {
-            // Background wall image
-            Image(
-                painter = wallImagePainter,
-                contentDescription = "Climbing wall",
-                contentScale = ContentScale.Fit,
-                modifier = Modifier.fillMaxSize()
-            )
+            // Background empty wall image when in empty wall mode
+            if (showEmptyWall && emptyWallImagePainter != null) {
+                Image(
+                    painter = emptyWallImagePainter,
+                    contentDescription = "Empty climbing wall",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
 
-            // Hold overlays
+            // Full wall image in normal mode
+            if (!showEmptyWall) {
+                Image(
+                    painter = wallImagePainter,
+                    contentDescription = "Climbing wall",
+                    contentScale = ContentScale.Fit,
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            // Clipped hold images in empty wall mode
+            if (showEmptyWall && displayParams.isValid) {
+                Canvas(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    configuration.holds.forEach { hold ->
+                        if (hold.id in selectedHoldIds) {
+                            drawHoldImage(
+                                hold = hold,
+                                wallImagePainter = wallImagePainter,
+                                displayParams = displayParams
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Hold overlays (shown in normal mode only, or as highlights in empty wall mode)
             if (displayParams.isValid) {
                 Canvas(
                     modifier = Modifier
@@ -130,15 +165,24 @@ fun ClimbingWallView(
                         }
                 ) {
                     configuration.holds.forEach { hold ->
-                        drawHoldOverlay(
-                            hold = hold,
-                            isSelected = hold.id in selectedHoldIds,
-                            displayParams = displayParams,
-                            selectedColor = selectedColor,
-                            unselectedColor = unselectedColor,
-                            selectedAlpha = selectedAlpha,
-                            unselectedAlpha = unselectedAlpha
-                        )
+                        // In empty wall mode, only show overlays for selected holds
+                        val shouldDraw = if (showEmptyWall) {
+                            hold.id in selectedHoldIds
+                        } else {
+                            true
+                        }
+
+                        if (shouldDraw) {
+                            drawHoldOverlay(
+                                hold = hold,
+                                isSelected = hold.id in selectedHoldIds,
+                                displayParams = displayParams,
+                                selectedColor = selectedColor,
+                                unselectedColor = unselectedColor,
+                                selectedAlpha = selectedAlpha,
+                                unselectedAlpha = unselectedAlpha
+                            )
+                        }
                     }
                 }
             }
@@ -430,5 +474,52 @@ internal fun createHoldPath(
         }
 
         close()
+    }
+}
+
+/**
+ * Draws a clipped portion of the wall image for a specific hold.
+ * This is used in empty wall mode to show only the selected holds from the full wall image.
+ */
+internal fun DrawScope.drawHoldImage(
+    hold: Hold,
+    wallImagePainter: Painter,
+    displayParams: DisplayParameters
+) {
+    if (hold.polygon.isNotEmpty()) {
+        // Use polygon clipping for accurate hold shape
+        val path = createHoldPath(hold.polygon, displayParams)
+        clipPath(path) {
+            // Draw the full wall image positioned correctly
+            // The image needs to be drawn at its display size and position
+            translate(displayParams.offsetX, displayParams.offsetY) {
+                with(wallImagePainter) {
+                    // Calculate the size the image should be drawn at based on intrinsic size and scale
+                    val drawWidth = intrinsicSize.width * displayParams.scaleX
+                    val drawHeight = intrinsicSize.height * displayParams.scaleY
+                    draw(Size(drawWidth, drawHeight))
+                }
+            }
+        }
+    } else {
+        // Fallback to bounding box clipping
+        val rect = Rect(
+            left = hold.x * displayParams.scaleX + displayParams.offsetX,
+            top = hold.y * displayParams.scaleY + displayParams.offsetY,
+            right = (hold.x + hold.width) * displayParams.scaleX + displayParams.offsetX,
+            bottom = (hold.y + hold.height) * displayParams.scaleY + displayParams.offsetY
+        )
+        val path = Path().apply {
+            addRect(rect)
+        }
+        clipPath(path) {
+            translate(displayParams.offsetX, displayParams.offsetY) {
+                with(wallImagePainter) {
+                    val drawWidth = intrinsicSize.width * displayParams.scaleX
+                    val drawHeight = intrinsicSize.height * displayParams.scaleY
+                    draw(Size(drawWidth, drawHeight))
+                }
+            }
+        }
     }
 }

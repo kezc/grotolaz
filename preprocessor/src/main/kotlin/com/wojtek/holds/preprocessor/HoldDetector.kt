@@ -19,8 +19,9 @@ class HoldDetector {
 
     companion object {
         private const val WHITE_THRESHOLD = 200
-        private const val SIMPLIFICATION_EPSILON = 8.0  // Higher value = smoother, less detailed polygons
+        private const val SIMPLIFICATION_EPSILON = 4.0  // Higher value = smoother, less detailed polygons
         private const val MAX_CONTOUR_POINTS = 10000
+        private const val MIN_HOLD_PIXELS = 50  // Minimum pixels required to consider a region as a hold
 
         // Direction vectors for 8-connectivity (N, NE, E, SE, S, SW, W, NW)
         private val DIRECTION_X = intArrayOf(0, 1, 1, 1, 0, -1, -1, -1)
@@ -153,6 +154,7 @@ class HoldDetector {
 
     /**
      * Detects a single hold starting from the given coordinates.
+     * Returns null if the hold has fewer than MIN_HOLD_PIXELS pixels.
      */
     private fun detectSingleHold(
         startX: Int,
@@ -162,7 +164,7 @@ class HoldDetector {
         holdId: Int
     ): Hold? {
         val holdPixels = floodFillHold(image, startX, startY, visited)
-        return if (holdPixels.isNotEmpty()) {
+        return if (holdPixels.size >= MIN_HOLD_PIXELS) {
             createHoldFromPixels(holdId, holdPixels)
         } else {
             null
