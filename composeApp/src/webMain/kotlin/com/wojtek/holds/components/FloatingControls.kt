@@ -121,14 +121,25 @@ fun BoxScope.FloatingControls(
                         ) {
                             Checkbox(
                                 checked = darkenNonSelected,
-                                onCheckedChange = null
+                                onCheckedChange = null,
+                                enabled = !showEmptyWall
                             )
-                            Text("Darken Non-Selected")
+                            Text(
+                                text = "Darken Non-Selected",
+                                color = if (showEmptyWall) {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
                         }
                     },
                     onClick = {
-                        onToggleDarkenNonSelected()
-                    }
+                        if (!showEmptyWall) {
+                            onToggleDarkenNonSelected()
+                        }
+                    },
+                    enabled = !showEmptyWall
                 )
 
                 DropdownMenuItem(
@@ -157,14 +168,25 @@ fun BoxScope.FloatingControls(
                         ) {
                             Checkbox(
                                 checked = showBorders,
-                                onCheckedChange = null
+                                onCheckedChange = null,
+                                enabled = darkenNonSelected || showEmptyWall
                             )
-                            Text("Show Borders")
+                            Text(
+                                text = "Show Borders",
+                                color = if (darkenNonSelected || showEmptyWall) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                }
+                            )
                         }
                     },
                     onClick = {
-                        onToggleBorders()
-                    }
+                        if (darkenNonSelected || showEmptyWall) {
+                            onToggleBorders()
+                        }
+                    },
+                    enabled = darkenNonSelected || showEmptyWall
                 )
             }
         }

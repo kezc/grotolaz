@@ -252,8 +252,16 @@ fun ClimbingWallView(
                         }
                     }
 
-                    // Draw borders on selected holds if enabled
-                    if (showBorders) {
+                    // Draw borders on selected holds
+                    // In normal mode: always show borders when darken non-selected is off
+                    // In empty wall mode: respect the showBorders setting
+                    val shouldShowBorders = if (showEmptyWall) {
+                        showBorders
+                    } else {
+                        showBorders || !darkenNonSelected
+                    }
+
+                    if (shouldShowBorders) {
                         configuration.holds.forEach { hold ->
                             if (hold.id in selectedHoldIds) {
                                 drawHoldBorder(

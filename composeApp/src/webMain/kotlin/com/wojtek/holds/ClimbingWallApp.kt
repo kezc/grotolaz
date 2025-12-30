@@ -30,6 +30,13 @@ fun ClimbingWallApp() {
     var isLocked by remember { mutableStateOf(false) }
     val configurationResult = rememberHoldConfiguration()
 
+    // When show selected only is turned on, automatically turn off darken non-selected
+    LaunchedEffect(showEmptyWall) {
+        if (showEmptyWall) {
+            darkenNonSelected = false
+        }
+    }
+
     // Load selected holds from URL after config is loaded
     LaunchedEffect(configurationResult.value) {
         if (configurationResult.value is ConfigurationLoadResult.Success) {
