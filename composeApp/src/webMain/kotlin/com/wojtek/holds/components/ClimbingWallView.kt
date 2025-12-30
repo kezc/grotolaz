@@ -57,6 +57,7 @@ import kotlin.math.min
  * @param showEmptyWall Whether to show empty wall with only selected holds (default: false)
  * @param darkenNonSelected Whether to darken non-selected holds (default: false)
  * @param showBorders Whether to show borders on selected holds (default: true)
+ * @param isLocked Whether clicking holds is disabled (default: false)
  */
 @Composable
 fun ClimbingWallView(
@@ -77,7 +78,8 @@ fun ClimbingWallView(
     emptyWallImagePainter: Painter? = null,
     showEmptyWall: Boolean = false,
     darkenNonSelected: Boolean = false,
-    showBorders: Boolean = true
+    showBorders: Boolean = true,
+    isLocked: Boolean = false
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -175,13 +177,15 @@ fun ClimbingWallView(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(displayParams, scale) {
+                        .pointerInput(displayParams, scale, isLocked) {
                             detectTapGestures { tapOffset ->
-                                findClickedHold(
-                                    tapOffset = tapOffset,
-                                    holds = configuration.holds,
-                                    displayParams = displayParams
-                                )?.let { onHoldClick(it.id) }
+                                if (!isLocked) {
+                                    findClickedHold(
+                                        tapOffset = tapOffset,
+                                        holds = configuration.holds,
+                                        displayParams = displayParams
+                                    )?.let { onHoldClick(it.id) }
+                                }
                             }
                         }
                 ) {

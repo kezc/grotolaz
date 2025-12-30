@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
  * @param onToggleDarkenNonSelected Callback when darken non-selected toggle is clicked
  * @param showBorders Whether to show borders on selected holds (default: true)
  * @param onToggleBorders Callback when border toggle is clicked
+ * @param isLocked Whether selection is locked (default: false)
+ * @param onToggleLock Callback when lock toggle button is clicked
  * @param additionalActions Optional additional action buttons composable
  */
 @Composable
@@ -42,6 +44,8 @@ fun ControlPanel(
     onToggleDarkenNonSelected: () -> Unit = {},
     showBorders: Boolean = true,
     onToggleBorders: () -> Unit = {},
+    isLocked: Boolean = false,
+    onToggleLock: () -> Unit = {},
     additionalActions: @Composable (RowScope.() -> Unit)? = null
 ) {
     Surface(
@@ -111,6 +115,21 @@ fun ControlPanel(
                     }
                 ) {
                     Text(if (showBorders) "Borders" else "No Borders")
+                }
+
+                Button(
+                    onClick = onToggleLock,
+                    colors = if (isLocked) {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    } else {
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.secondary
+                        )
+                    }
+                ) {
+                    Text(if (isLocked) "🔒 Locked" else "🔓 Unlocked")
                 }
 
                 additionalActions?.invoke(this)

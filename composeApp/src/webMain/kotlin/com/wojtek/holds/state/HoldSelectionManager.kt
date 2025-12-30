@@ -21,6 +21,9 @@ class HoldSelectionManager(
     private var _selectedHoldIds = mutableStateOf(initialSelection)
     val selectedHoldIds: State<Set<Int>> = _selectedHoldIds
 
+    private var _isLocked = mutableStateOf(false)
+    val isLocked: State<Boolean> = _isLocked
+
     private val history = mutableListOf<Set<Int>>()
     private var historyIndex = -1
 
@@ -31,9 +34,31 @@ class HoldSelectionManager(
     }
 
     /**
+     * Locks the selection to prevent changes.
+     */
+    fun lock() {
+        _isLocked.value = true
+    }
+
+    /**
+     * Unlocks the selection to allow changes.
+     */
+    fun unlock() {
+        _isLocked.value = false
+    }
+
+    /**
+     * Toggles the lock state.
+     */
+    fun toggleLock() {
+        _isLocked.value = !_isLocked.value
+    }
+
+    /**
      * Toggles selection of a hold.
      */
     fun toggleHold(holdId: Int) {
+        if (_isLocked.value) return
         val newSelection = if (holdId in _selectedHoldIds.value) {
             _selectedHoldIds.value - holdId
         } else {
@@ -46,6 +71,7 @@ class HoldSelectionManager(
      * Selects a hold.
      */
     fun selectHold(holdId: Int) {
+        if (_isLocked.value) return
         if (holdId !in _selectedHoldIds.value) {
             setSelection(_selectedHoldIds.value + holdId)
         }
@@ -55,6 +81,7 @@ class HoldSelectionManager(
      * Deselects a hold.
      */
     fun deselectHold(holdId: Int) {
+        if (_isLocked.value) return
         if (holdId in _selectedHoldIds.value) {
             setSelection(_selectedHoldIds.value - holdId)
         }
@@ -64,6 +91,7 @@ class HoldSelectionManager(
      * Selects multiple holds.
      */
     fun selectHolds(holdIds: Set<Int>) {
+        if (_isLocked.value) return
         setSelection(_selectedHoldIds.value + holdIds)
     }
 
@@ -71,6 +99,7 @@ class HoldSelectionManager(
      * Deselects multiple holds.
      */
     fun deselectHolds(holdIds: Set<Int>) {
+        if (_isLocked.value) return
         setSelection(_selectedHoldIds.value - holdIds)
     }
 
@@ -78,6 +107,7 @@ class HoldSelectionManager(
      * Clears all selections.
      */
     fun clearSelection() {
+        if (_isLocked.value) return
         setSelection(emptySet())
     }
 
@@ -85,6 +115,7 @@ class HoldSelectionManager(
      * Sets the selection to a specific set of hold IDs.
      */
     fun setSelection(holdIds: Set<Int>) {
+        if (_isLocked.value) return
         val validated = if (configuration != null) {
             holdIds.filter { id -> configuration.holds.any { it.id == id } }.toSet()
         } else {
@@ -114,6 +145,7 @@ class HoldSelectionManager(
      * Inverts the selection (selects unselected, deselects selected).
      */
     fun invertSelection() {
+        if (_isLocked.value) return
         if (configuration != null) {
             val allIds = configuration.holds.map { it.id }.toSet()
             setSelection(allIds - _selectedHoldIds.value)

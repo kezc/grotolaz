@@ -28,6 +28,7 @@ fun ClimbingWallApp() {
     var showEmptyWall by remember { mutableStateOf(false) }
     var darkenNonSelected by remember { mutableStateOf(false) }
     var showBorders by remember { mutableStateOf(true) }
+    var isLocked by remember { mutableStateOf(false) }
     val configurationResult = rememberHoldConfiguration()
 
     // Load selected holds from URL after config is loaded
@@ -62,15 +63,21 @@ fun ClimbingWallApp() {
                     showEmptyWall = showEmptyWall,
                     darkenNonSelected = darkenNonSelected,
                     showBorders = showBorders,
-                    onClearClick = { selectedHoldIds = emptySet() },
+                    isLocked = isLocked,
+                    onClearClick = {
+                        if (!isLocked) selectedHoldIds = emptySet()
+                    },
                     onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
                     onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
                     onToggleBorders = { showBorders = !showBorders },
+                    onToggleLock = { isLocked = !isLocked },
                     onHoldClick = { holdId ->
-                        selectedHoldIds = if (holdId in selectedHoldIds) {
-                            selectedHoldIds - holdId
-                        } else {
-                            selectedHoldIds + holdId
+                        if (!isLocked) {
+                            selectedHoldIds = if (holdId in selectedHoldIds) {
+                                selectedHoldIds - holdId
+                            } else {
+                                selectedHoldIds + holdId
+                            }
                         }
                     }
                 )
@@ -109,10 +116,12 @@ private fun ClimbingWallContent(
     showEmptyWall: Boolean,
     darkenNonSelected: Boolean,
     showBorders: Boolean,
+    isLocked: Boolean,
     onClearClick: () -> Unit,
     onToggleEmptyWall: () -> Unit,
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
+    onToggleLock: () -> Unit,
     onHoldClick: (Int) -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
@@ -126,7 +135,9 @@ private fun ClimbingWallContent(
             darkenNonSelected = darkenNonSelected,
             onToggleDarkenNonSelected = onToggleDarkenNonSelected,
             showBorders = showBorders,
-            onToggleBorders = onToggleBorders
+            onToggleBorders = onToggleBorders,
+            isLocked = isLocked,
+            onToggleLock = onToggleLock
         )
 
         Box(
@@ -143,7 +154,8 @@ private fun ClimbingWallContent(
                 emptyWallImagePainter = painterResource(Res.drawable.empty),
                 showEmptyWall = showEmptyWall,
                 darkenNonSelected = darkenNonSelected,
-                showBorders = showBorders
+                showBorders = showBorders,
+                isLocked = isLocked
             )
         }
     }
