@@ -21,6 +21,19 @@ kotlin {
     }
 
     sourceSets {
+        // Configure source set hierarchy: commonMain -> webMain -> (jsMain + wasmJsMain)
+        val webMain by creating {
+            dependsOn(commonMain.get())
+        }
+
+        jsMain {
+            dependsOn(webMain)
+        }
+
+        wasmJsMain {
+            dependsOn(webMain)
+        }
+
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)

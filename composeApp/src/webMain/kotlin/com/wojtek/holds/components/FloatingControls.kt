@@ -7,12 +7,15 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import kotlinx.browser.window
+import kotlinx.coroutines.launch
 
 /**
  * Floating controls for mobile-friendly navigation.
@@ -47,6 +50,8 @@ fun BoxScope.FloatingControls(
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = modifier
@@ -188,7 +193,47 @@ fun BoxScope.FloatingControls(
                     },
                     enabled = darkenNonSelected || showEmptyWall
                 )
+
+                HorizontalDivider()
+
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share"
+                            )
+                            Text("Share URL")
+                        }
+                    },
+                    onClick = {
+                        showMenu = false
+                        // Copy current URL to clipboard
+                        scope.launch {
+                            try {
+                                window.navigator.clipboard.writeText(window.location.href)
+                                snackbarHostState.showSnackbar(
+                                    message = "URL copied to clipboard",
+                                    duration = SnackbarDuration.Short
+                                )
+                            } catch (e: Exception) {
+                                println("Failed to copy URL to clipboard: ${e.message}")
+                            }
+                        }
+                    }
+                )
             }
         }
     }
+
+    // Snackbar host for showing copy confirmation
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 80.dp)
+    )
 }
