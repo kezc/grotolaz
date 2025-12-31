@@ -132,20 +132,25 @@ fun ClimbingWallView(
                 .graphicsLayer(
                     scaleX = scale,
                     scaleY = scale,
-                    translationX = offsetX,
-                    translationY = offsetY,
-                    clip = true
+                    clip = false
                 )
-                .pointerInput(minZoom, maxZoom) {
+                .offset {
+                    androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt())
+                }
+                .pointerInput(Unit) {
                     // Detect pinch-to-zoom and pan gestures
-                    detectTransformGestures { centroid, pan, zoom, rotation ->
+                    detectTransformGestures(
+                        panZoomLock = false
+                    ) { centroid, pan, zoom, rotation ->
+                        val oldScale = scale
+
                         // Apply zoom with constraints
-                        val newScale = (scale * zoom).coerceIn(minZoom, maxZoom)
+                        scale = (scale * zoom).coerceIn(minZoom, maxZoom)
 
                         // Calculate zoom factor applied
-                        val zoomFactor = newScale / scale
+                        val zoomFactor = scale / oldScale
 
-                        // Adjust pan offset to zoom towards the centroid
+                        // Handle zoom transformation
                         if (zoomFactor != 1f) {
                             // Calculate the difference between centroid and current center
                             val centerX = size.width / 2f
@@ -156,13 +161,9 @@ fun ClimbingWallView(
                             // Adjust offsets to zoom towards the gesture centroid
                             offsetX = (offsetX + deltaX) * zoomFactor - deltaX
                             offsetY = (offsetY + deltaY) * zoomFactor - deltaY
-                        }
-
-                        // Update scale
-                        scale = newScale
-
-                        // Apply panning (only when zoomed in)
-                        if (scale > 1f) {
+                        } else {
+                            // Only apply pan when not zooming (pure drag gesture)
+                            // This gives 1:1 cursor-to-content tracking
                             offsetX += pan.x
                             offsetY += pan.y
                         }
