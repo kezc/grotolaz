@@ -79,6 +79,54 @@ Windows:
 
 The application will start a development server (usually on `http://localhost:8080`).
 
+## Deployment to GitHub Pages
+
+This project includes an automated deployment script for publishing your climbing wall app to GitHub Pages.
+
+### Prerequisites
+- A GitHub repository for your project
+- GitHub Pages enabled in repository settings (Settings → Pages → Source: gh-pages branch)
+
+### Deployment Steps
+
+1. **Make sure you're on the main branch** with all changes committed
+2. **Run the deployment script:**
+
+```bash
+./deploy-gh-pages.sh
+```
+
+### What the Script Does
+
+The deployment script automates the entire GitHub Pages deployment process:
+
+1. **Builds the production bundle** - Compiles your Wasm application using the production configuration
+2. **Creates/updates gh-pages branch** - Either creates a new orphan branch or checks out the existing one
+3. **Deploys build output** - Copies the compiled application to the root of the gh-pages branch
+4. **Commits and pushes** - Creates a timestamped commit and pushes to the remote gh-pages branch
+5. **Returns to main** - Automatically switches you back to the main branch
+
+### After First Deployment
+
+Once deployed, your application will be available at:
+```
+https://<your-username>.github.io/<repository-name>/
+```
+
+### Deployment History
+
+Each deployment creates a new commit on the `gh-pages` branch with a timestamp, allowing you to:
+- Track deployment history
+- Roll back to previous versions if needed
+- See when each deployment was made
+
+### Troubleshooting
+
+- **Permission errors**: Make sure the script is executable (`chmod +x deploy-gh-pages.sh`)
+- **Build failures**: Check that your application builds successfully locally first
+- **404 errors**: Ensure GitHub Pages is configured to use the `gh-pages` branch in repository settings
+- **Script not found**: Make sure you're in the project root directory
+
 ## Using the Application
 
 Once the web app is running:
