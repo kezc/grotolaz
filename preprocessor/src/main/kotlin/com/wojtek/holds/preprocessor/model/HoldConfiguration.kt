@@ -1,5 +1,6 @@
 package com.wojtek.holds.preprocessor.model
 
+import com.wojtek.holds.preprocessor.Constants.DEFAULT_VERSION
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -7,7 +8,8 @@ data class HoldConfiguration(
     val wallImage: String,
     val imageWidth: Int,
     val imageHeight: Int,
-    val holds: List<Hold>
+    val holds: List<Hold>,
+    val version: String = DEFAULT_VERSION // Version ID for the image trio (map, wall, empty)
 )
 
 @Serializable

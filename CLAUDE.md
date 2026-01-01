@@ -90,16 +90,22 @@ The preprocessor analyzes a binary map image and generates polygon contours for 
 **Command:**
 ```bash
 # macOS/Linux
-./gradlew :preprocessor:run --args="<map-image> <wall-image> <output-json>"
+./gradlew :preprocessor:run --args="<map-image> <wall-image> <output-json> [version-id]"
 
 # Windows
-.\gradlew.bat :preprocessor:run --args="<map-image> <wall-image> <output-json>"
+.\gradlew.bat :preprocessor:run --args="<map-image> <wall-image> <output-json> [version-id]"
 ```
 
 **Example:**
 ```bash
-./gradlew :preprocessor:run --args="/Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/drawable/map.png /Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/drawable/wall.png /Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/files/holds.json"
+./gradlew :preprocessor:run --args="/Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/drawable/map.png /Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/drawable/wall.png /Users/wojtek/IdeaProjects/holds/composeApp/src/webMain/composeResources/files/holds.json v1"
 ```
+
+**Parameters:**
+- `map-image`: Path to the binary map image (white holds on black background)
+- `wall-image`: Path to the actual wall photo
+- `output-json`: Path where the holds.json file will be saved
+- `version-id` (optional): Version identifier for the image set (default: "v1")
 
 **What it does:**
 - Loads the binary map image (white holds on black background)
@@ -121,6 +127,7 @@ The preprocessor analyzes a binary map image and generates polygon contours for 
   "wallImage": "wall.png",
   "imageWidth": 2432,
   "imageHeight": 1760,
+  "version": "v1",
   "holds": [
     {
       "id": 0,
@@ -183,7 +190,8 @@ Both commands support `--continuous` flag for automatic reload on file changes:
 - ✅ **Zoom and pan**: Zoom in/out and pan across the wall
 - ✅ **Advanced state management**: HoldSelectionManager with undo/redo support
 - ✅ **Persistent storage**: Save/load selections using browser localStorage
-- ✅ **URL-based sharing**: Share selections via URL (e.g., `#holds=1,5,12,23`)
+- ✅ **URL-based sharing**: Share selections via URL with version tracking (e.g., `#v=v1&holds=1,5,12,23`)
+- ✅ **Multi-version support**: Maintain multiple wall versions simultaneously with automatic loading
 - ✅ **Responsive design**: Automatically adjusts to window resizing
 - ✅ **Accurate hit detection**: Point-in-polygon using ray casting algorithm
 - ✅ **Hold counter**: Shows "Selected: X / Y"
@@ -196,7 +204,7 @@ Both commands support `--continuous` flag for automatic reload on file changes:
 - **Clear button**: Deselect all holds
 - **Save button**: Store selection to localStorage
 - **Load button**: Restore saved selection
-- **Share URL**: Copy the browser URL to share your current selection with others
+- **Share URL**: Copy the browser URL to share your current selection with others (includes version ID)
 
 ## Component-Based Architecture
 
@@ -328,7 +336,8 @@ data class HoldConfiguration(
     val wallImage: String,
     val imageWidth: Int,
     val imageHeight: Int,
-    val holds: List<Hold>
+    val holds: List<Hold>,
+    val version: String = "v1" // Version ID for the image trio (map, wall, empty)
 )
 
 @Serializable
@@ -347,6 +356,40 @@ data class Point(
     val y: Int
 )
 ```
+
+### Version Management
+
+The application supports multiple wall versions simultaneously through versioned resource loading:
+
+1. **Version ID**: Each configuration has a `version` field (e.g., "v1", "v2", "v3")
+2. **URL Format**: URLs encode both version and holds: `#v=v1&holds=1,5,12`
+3. **Resource Structure**: Images and configurations are organized by version:
+   ```
+   composeResources/
+     files/
+       v1/
+         holds.json
+         wall.png
+         empty.png
+       v2/
+         holds.json
+         wall.png
+         empty.png
+   ```
+4. **Dynamic Loading**: When a URL is opened:
+   - The app extracts the version from the URL (defaults to "v1" if not specified)
+   - Loads the corresponding `holds.json` from `files/{version}/holds.json`
+   - Loads images from `files/{version}/wall.png` and `files/{version}/empty.png`
+   - No warnings needed - the correct version is always displayed
+5. **Updating Walls**: When regenerating holds.json with new images:
+   - Create a new version directory (e.g., `files/v2/`)
+   - Generate holds.json with the new version ID
+   - Place wall.png and empty.png in the version directory
+   - Both v1 and v2 URLs work simultaneously
+6. **Default Version**: The default version (used when no version is in the URL) is defined in `Constants.DEFAULT_VERSION`:
+   - Web app: `composeApp/src/webMain/kotlin/com/wojtek/holds/Constants.kt`
+   - Preprocessor: `preprocessor/src/main/kotlin/com/wojtek/holds/preprocessor/Constants.kt`
+   - Change this value in both places to switch the default version
 
 ## Development Notes
 

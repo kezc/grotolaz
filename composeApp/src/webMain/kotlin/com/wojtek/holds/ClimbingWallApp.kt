@@ -7,9 +7,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.ClimbingWallView
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
+import com.wojtek.holds.utils.rememberVersionedImage
 import holds.composeapp.generated.resources.Res
 import holds.composeapp.generated.resources.empty
 import holds.composeapp.generated.resources.wall
@@ -28,7 +30,17 @@ fun ClimbingWallApp() {
     var darkenNonSelected by remember { mutableStateOf(false) }
     var showBorders by remember { mutableStateOf(true) }
     var isLocked by remember { mutableStateOf(false) }
-    val configurationResult = rememberHoldConfiguration()
+
+    // Get version from URL, default to DEFAULT_VERSION if not present
+    val (urlVersion, urlHolds) = remember { UrlSync.decodeFromUrl() }
+    val version = urlVersion ?: DEFAULT_VERSION
+
+    // Load configuration for the requested version
+    val configurationResult = rememberHoldConfiguration(version = version)
+
+    // Load versioned images
+    val wallImageState = rememberVersionedImage(version, "wall.png")
+    val emptyImageState = rememberVersionedImage(version, "empty.png")
 
     // When show selected only is turned on, automatically turn off darken non-selected
     LaunchedEffect(showEmptyWall) {
@@ -39,18 +51,16 @@ fun ClimbingWallApp() {
 
     // Load selected holds from URL after config is loaded
     LaunchedEffect(configurationResult.value) {
-        if (configurationResult.value is ConfigurationLoadResult.Success) {
-            val holdsFromUrl = UrlSync.decodeFromUrl()
-            if (holdsFromUrl.isNotEmpty()) {
-                selectedHoldIds = holdsFromUrl
-            }
+        if (configurationResult.value is ConfigurationLoadResult.Success && urlHolds.isNotEmpty()) {
+            selectedHoldIds = urlHolds
         }
     }
 
     // Sync URL when selected holds change
     LaunchedEffect(selectedHoldIds) {
         if (configurationResult.value is ConfigurationLoadResult.Success) {
-            UrlSync.encodeToUrl(selectedHoldIds)
+            val config = (configurationResult.value as ConfigurationLoadResult.Success).configuration
+            UrlSync.encodeToUrl(selectedHoldIds, config.version)
         }
     }
 
@@ -63,30 +73,41 @@ fun ClimbingWallApp() {
             when (val result = configurationResult.value) {
                 is ConfigurationLoadResult.Loading -> LoadingIndicator()
                 is ConfigurationLoadResult.Error -> ErrorDisplay(result.message)
-                is ConfigurationLoadResult.Success -> ClimbingWallContent(
-                    configuration = result.configuration,
-                    selectedHoldIds = selectedHoldIds,
-                    showEmptyWall = showEmptyWall,
-                    darkenNonSelected = darkenNonSelected,
-                    showBorders = showBorders,
-                    isLocked = isLocked,
-                    onClearClick = {
-                        if (!isLocked) selectedHoldIds = emptySet()
-                    },
-                    onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
-                    onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
-                    onToggleBorders = { showBorders = !showBorders },
-                    onToggleLock = { isLocked = !isLocked },
-                    onHoldClick = { holdId ->
-                        if (!isLocked) {
-                            selectedHoldIds = if (holdId in selectedHoldIds) {
-                                selectedHoldIds - holdId
-                            } else {
-                                selectedHoldIds + holdId
+                is ConfigurationLoadResult.Success -> {
+                    val wallPainter = wallImageState.value
+                    val emptyPainter = emptyImageState.value
+
+                    if (wallPainter != null && emptyPainter != null) {
+                        ClimbingWallContent(
+                            configuration = result.configuration,
+                            wallPainter = wallPainter,
+                            emptyPainter = emptyPainter,
+                            selectedHoldIds = selectedHoldIds,
+                            showEmptyWall = showEmptyWall,
+                            darkenNonSelected = darkenNonSelected,
+                            showBorders = showBorders,
+                            isLocked = isLocked,
+                            onClearClick = {
+                                if (!isLocked) selectedHoldIds = emptySet()
+                            },
+                            onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
+                            onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
+                            onToggleBorders = { showBorders = !showBorders },
+                            onToggleLock = { isLocked = !isLocked },
+                            onHoldClick = { holdId ->
+                                if (!isLocked) {
+                                    selectedHoldIds = if (holdId in selectedHoldIds) {
+                                        selectedHoldIds - holdId
+                                    } else {
+                                        selectedHoldIds + holdId
+                                    }
+                                }
                             }
-                        }
+                        )
+                    } else {
+                        LoadingIndicator()
                     }
-                )
+                }
             }
         }
     }
@@ -118,6 +139,8 @@ private fun BoxScope.ErrorDisplay(message: String) {
 @Composable
 private fun ClimbingWallContent(
     configuration: com.wojtek.holds.model.HoldConfiguration,
+    wallPainter: androidx.compose.ui.graphics.painter.Painter,
+    emptyPainter: androidx.compose.ui.graphics.painter.Painter,
     selectedHoldIds: Set<Int>,
     showEmptyWall: Boolean,
     darkenNonSelected: Boolean,
@@ -134,10 +157,10 @@ private fun ClimbingWallContent(
         // Main climbing wall view
         ClimbingWallView(
             configuration = configuration,
-            wallImagePainter = painterResource(Res.drawable.wall),
+            wallImagePainter = wallPainter,
             selectedHoldIds = selectedHoldIds,
             onHoldClick = onHoldClick,
-            emptyWallImagePainter = painterResource(Res.drawable.empty),
+            emptyWallImagePainter = emptyPainter,
             showEmptyWall = showEmptyWall,
             darkenNonSelected = darkenNonSelected,
             showBorders = showBorders,

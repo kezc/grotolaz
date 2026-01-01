@@ -1,5 +1,6 @@
 package com.wojtek.holds.preprocessor
 
+import com.wojtek.holds.preprocessor.Constants.DEFAULT_VERSION
 import com.wojtek.holds.preprocessor.model.Hold
 import com.wojtek.holds.preprocessor.model.HoldConfiguration
 import java.io.File
@@ -33,9 +34,10 @@ class HoldDetector {
      *
      * @param mapImagePath Path to binary map image (white holds on black background)
      * @param wallImagePath Path to the actual wall photo
+     * @param version Version identifier for the image set (default: DEFAULT_VERSION)
      * @return Configuration containing all detected holds with polygon contours
      */
-    fun detectHolds(mapImagePath: String, wallImagePath: String): HoldConfiguration {
+    fun detectHolds(mapImagePath: String, wallImagePath: String, version: String = DEFAULT_VERSION): HoldConfiguration {
         val mapImage = ImageIO.read(File(mapImagePath))
         val width = mapImage.width
         val height = mapImage.height
@@ -61,7 +63,8 @@ class HoldDetector {
             wallImage = File(wallImagePath).name,
             imageWidth = width,
             imageHeight = height,
-            holds = holds
+            holds = holds,
+            version = version
         )
     }
 

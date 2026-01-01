@@ -30,24 +30,42 @@ First, you need to process your climbing wall images to detect holds:
 
 **macOS/Linux:**
 ```bash
-./gradlew :preprocessor:run --args="<path-to-map.png> <path-to-wall.png> <output-path>/holds.json"
+./gradlew :preprocessor:run --args="<path-to-map.png> <path-to-wall.png> <output-path>/holds.json [version-id]"
 ```
 
 **Windows:**
 ```bash
-.\gradlew.bat :preprocessor:run --args="<path-to-map.png> <path-to-wall.png> <output-path>\holds.json"
+.\gradlew.bat :preprocessor:run --args="<path-to-map.png> <path-to-wall.png> <output-path>\holds.json [version-id]"
 ```
 
 **Example:**
 ```bash
-./gradlew :preprocessor:run --args="/path/to/map.png /path/to/wall.png composeApp/src/webMain/composeResources/files/holds.json"
+./gradlew :preprocessor:run --args="/path/to/map.png /path/to/wall.png composeApp/src/webMain/composeResources/files/holds.json v1"
 ```
+
+**Note:** The optional `version-id` parameter (default: "v1") identifies this specific image set. This allows you to maintain multiple versions of your wall simultaneously.
 
 The preprocessor will:
 - Detect all holds in the map image
 - Trace polygon contours for each hold
 - Simplify polygons using Douglas-Peucker algorithm
 - Generate a `holds.json` file with hold positions and polygon data
+- Store the version ID in the configuration
+
+**Resource Structure:**
+The generated files should be organized by version in the `composeApp/src/webMain/composeResources/files/` directory:
+```
+composeResources/
+  files/
+    v1/
+      holds.json
+      wall.png
+      empty.png
+    v2/
+      holds.json
+      wall.png
+      empty.png
+```
 
 ### Step 2: Run the Web Application
 
@@ -136,14 +154,40 @@ Once the web app is running:
 3. **Clear all**: Click the "Clear" button to deselect all holds
 4. **Save selection**: Click "Save" to store your selection in browser localStorage
 5. **Load selection**: Click "Load" to restore a previously saved selection
+6. **Share selection**: Copy the browser URL to share your selection with others (e.g., `#v=v1&holds=1,5,12,23`)
 
 The overlays are rendered as polygons that match the exact shape of each hold, and they automatically adjust when you resize the browser window.
+
+### Version Management
+
+The application supports multiple wall versions simultaneously:
+
+- Each configuration has a version ID (e.g., "v1", "v2")
+- URLs include both the version and selected holds (e.g., `#v=v1&holds=1,5,12`)
+- When you open a URL, the app automatically loads the correct version's images and configuration
+- You can maintain old and new wall versions side-by-side
+- Old URLs continue to work and display the correct wall version
+
+**Example workflow:**
+1. Create v1: `./gradlew :preprocessor:run --args="map_v1.png wall_v1.png composeApp/src/webMain/composeResources/files/v1/holds.json v1"`
+2. Move `wall_v1.png` to `composeApp/src/webMain/composeResources/files/v1/wall.png`
+3. Move empty wall photo to `composeApp/src/webMain/composeResources/files/v1/empty.png`
+4. When walls change, create v2 with the same steps
+5. Both versions coexist - URLs automatically load the right one
+
+**Changing the default version:**
+To change which version loads by default (when no version is in the URL), update `DEFAULT_VERSION` in both:
+- `composeApp/src/webMain/kotlin/com/wojtek/holds/Constants.kt`
+- `preprocessor/src/main/kotlin/com/wojtek/holds/preprocessor/Constants.kt`
 
 ## Features
 
 - ✅ Polygon-based hold detection and rendering
 - ✅ Interactive hold selection with visual feedback
 - ✅ Persistent storage (localStorage)
+- ✅ URL-based sharing with version tracking
+- ✅ Multi-version support (maintain old and new walls simultaneously)
+- ✅ Automatic version loading from URLs
 - ✅ Responsive design (works on any screen size)
 - ✅ Accurate click detection using ray casting algorithm
 - ✅ Auto-adjusting overlays on browser resize

@@ -5,34 +5,37 @@ import kotlinx.browser.window
 /**
  * Utilities for syncing selected holds state with URL parameters.
  *
- * Selected holds are encoded as a comma-separated list of IDs in the URL hash.
- * Example: http://localhost:8080/#holds=1,5,12,23
+ * Selected holds are encoded as a comma-separated list of IDs in the URL hash,
+ * along with a version identifier for the image set.
+ * Example: http://localhost:8080/#v=v1&holds=1,5,12,23
  */
 object UrlSync {
+    private const val VERSION_PARAM = "v"
     private const val HOLDS_PARAM = "holds"
 
     /**
-     * Encodes selected hold IDs into the URL hash.
+     * Encodes selected hold IDs and version into the URL hash.
      *
      * @param holdIds Set of hold IDs to encode
+     * @param version Version identifier for the image set
      */
-    fun encodeToUrl(holdIds: Set<Int>) {
+    fun encodeToUrl(holdIds: Set<Int>, version: String) {
         val hash = if (holdIds.isEmpty()) {
             ""
         } else {
-            "#$HOLDS_PARAM=${holdIds.sorted().joinToString(",")}"
+            "#$VERSION_PARAM=$version&$HOLDS_PARAM=${holdIds.sorted().joinToString(",")}"
         }
         window.location.hash = hash
     }
 
     /**
-     * Decodes selected hold IDs from the URL hash.
+     * Decodes selected hold IDs and version from the URL hash.
      *
-     * @return Set of hold IDs, or empty set if no valid data in URL
+     * @return Pair of version string and set of hold IDs, or null version and empty set if no valid data in URL
      */
-    fun decodeFromUrl(): Set<Int> {
+    fun decodeFromUrl(): Pair<String?, Set<Int>> {
         val hash = window.location.hash.removePrefix("#")
-        if (hash.isBlank()) return emptySet()
+        if (hash.isBlank()) return Pair(null, emptySet())
 
         val params = hash.split("&").associate { param ->
             val parts = param.split("=", limit = 2)
@@ -41,10 +44,13 @@ object UrlSync {
             key to value
         }
 
-        val holdsParam = params[HOLDS_PARAM] ?: return emptySet()
+        val version = params[VERSION_PARAM]
+        val holdsParam = params[HOLDS_PARAM] ?: return Pair(version, emptySet())
 
-        return holdsParam.split(",")
+        val holdIds = holdsParam.split(",")
             .mapNotNull { it.toIntOrNull() }
             .toSet()
+
+        return Pair(version, holdIds)
     }
 }
