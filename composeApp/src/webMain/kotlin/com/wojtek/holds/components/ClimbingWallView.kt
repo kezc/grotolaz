@@ -2,7 +2,6 @@ package com.wojtek.holds.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
@@ -11,13 +10,11 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -621,18 +618,7 @@ internal fun DrawScope.drawHoldImage(
     if (hold.polygon.isNotEmpty()) {
         // Use polygon clipping for accurate hold shape
         val path = createHoldPath(hold.polygon, displayParams)
-        clipPath(path) {
-            // Draw the full wall image positioned correctly
-            // The image needs to be drawn at its display size and position
-            translate(displayParams.offsetX, displayParams.offsetY) {
-                with(wallImagePainter) {
-                    // Calculate the size the image should be drawn at based on intrinsic size and scale
-                    val drawWidth = intrinsicSize.width * displayParams.scaleX
-                    val drawHeight = intrinsicSize.height * displayParams.scaleY
-                    draw(Size(drawWidth, drawHeight))
-                }
-            }
-        }
+        drawWallImage(path, displayParams, wallImagePainter)
     } else {
         // Fallback to bounding box clipping
         val rect = Rect(
@@ -644,13 +630,21 @@ internal fun DrawScope.drawHoldImage(
         val path = Path().apply {
             addRect(rect)
         }
-        clipPath(path) {
-            translate(displayParams.offsetX, displayParams.offsetY) {
-                with(wallImagePainter) {
-                    val drawWidth = intrinsicSize.width * displayParams.scaleX
-                    val drawHeight = intrinsicSize.height * displayParams.scaleY
-                    draw(Size(drawWidth, drawHeight))
-                }
+        drawWallImage(path, displayParams, wallImagePainter)
+    }
+}
+
+private fun DrawScope.drawWallImage(
+    path: Path,
+    displayParams: DisplayParameters,
+    wallImagePainter: Painter
+) {
+    clipPath(path) {
+        translate(displayParams.offsetX, displayParams.offsetY) {
+            with(wallImagePainter) {
+                val drawWidth = intrinsicSize.width * displayParams.scaleX
+                val drawHeight = intrinsicSize.height * displayParams.scaleY
+                draw(Size(drawWidth, drawHeight))
             }
         }
     }
