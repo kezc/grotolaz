@@ -1,4 +1,4 @@
-package com.wojtek.holds.components
+package com.wojtek.holds.components.climbingwall
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons

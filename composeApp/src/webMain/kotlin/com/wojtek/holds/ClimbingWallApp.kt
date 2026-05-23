@@ -8,7 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.Constants.DEFAULT_VERSION
-import com.wojtek.holds.components.ClimbingWallView
+import com.wojtek.holds.components.climbingwall.ClimbingWallView
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
 import com.wojtek.holds.utils.rememberVersionedImage

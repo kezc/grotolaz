@@ -1,4 +1,4 @@
-package com.wojtek.holds.components
+package com.wojtek.holds.components.climbingwall
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -26,9 +26,11 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.wojtek.holds.model.Hold
 import com.wojtek.holds.model.HoldConfiguration
+import com.wojtek.holds.model.Point
 import kotlin.math.max
 import kotlin.math.min
 
@@ -133,7 +135,7 @@ fun ClimbingWallView(
                     clip = false
                 )
                 .offset {
-                    androidx.compose.ui.unit.IntOffset(offsetX.toInt(), offsetY.toInt())
+                    IntOffset(offsetX.toInt(), offsetY.toInt())
                 }
                 .pointerInput(Unit) {
                     // Detect pinch-to-zoom and pan gestures
@@ -447,7 +449,7 @@ internal fun isPointInBoundingBox(
  */
 internal fun isPointInPolygon(
     point: Offset,
-    polygon: List<com.wojtek.holds.model.Point>,
+    polygon: List<Point>,
     scaleX: Float,
     scaleY: Float
 ): Boolean {
@@ -583,7 +585,7 @@ internal fun DrawScope.drawHoldBorder(
  * Creates a Path from polygon points with scaling and offset.
  */
 internal fun createHoldPath(
-    polygon: List<com.wojtek.holds.model.Point>,
+    polygon: List<Point>,
     displayParams: DisplayParameters
 ): Path {
     return Path().apply {
