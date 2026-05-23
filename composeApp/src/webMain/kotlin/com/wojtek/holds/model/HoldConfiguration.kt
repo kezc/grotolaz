@@ -28,7 +28,3 @@ data class Point(
     val y: Int
 )
 
-@Serializable
-data class SelectedHolds(
-    val selectedIds: List<Int>
-)
