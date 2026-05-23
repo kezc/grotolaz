@@ -75,44 +75,6 @@ fun rememberHoldConfiguration(
     return loadResult
 }
 
-/**
- * Composable function for loading configuration with separate state values.
- *
- * @param version Version identifier for the configuration to load (e.g., "v1", "v2")
- * @return Triple of (configuration, isLoading, errorMessage)
- */
-@Composable
-fun rememberHoldConfigurationState(
-    version: String = DEFAULT_VERSION
-): Triple<HoldConfiguration?, Boolean, String?> {
-    var configuration by remember { mutableStateOf<HoldConfiguration?>(null) }
-    var isLoading by remember { mutableStateOf(true) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(version) {
-        scope.launch {
-            isLoading = true
-            errorMessage = null
-
-            when (val result = loadHoldConfiguration(version)) {
-                is ConfigurationLoadResult.Success -> {
-                    configuration = result.configuration
-                    isLoading = false
-                }
-                is ConfigurationLoadResult.Error -> {
-                    errorMessage = result.message
-                    isLoading = false
-                }
-                ConfigurationLoadResult.Loading -> {
-                    // Should not happen
-                }
-            }
-        }
-    }
-
-    return Triple(configuration, isLoading, errorMessage)
-}
 
 /**
  * Helper function to get the resource path for a versioned image.

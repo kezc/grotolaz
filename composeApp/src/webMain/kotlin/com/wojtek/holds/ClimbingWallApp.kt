@@ -12,10 +12,6 @@ import com.wojtek.holds.components.ClimbingWallView
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
 import com.wojtek.holds.utils.rememberVersionedImage
-import holds.composeapp.generated.resources.Res
-import holds.composeapp.generated.resources.empty
-import holds.composeapp.generated.resources.wall
-import org.jetbrains.compose.resources.painterResource
 
 /**
  * Main application composable for the climbing wall hold tracker.
@@ -87,9 +83,6 @@ fun ClimbingWallApp() {
                             darkenNonSelected = darkenNonSelected,
                             showBorders = showBorders,
                             isLocked = isLocked,
-                            onClearClick = {
-                                if (!isLocked) selectedHoldIds = emptySet()
-                            },
                             onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
                             onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
                             onToggleBorders = { showBorders = !showBorders },
@@ -146,7 +139,6 @@ private fun ClimbingWallContent(
     darkenNonSelected: Boolean,
     showBorders: Boolean,
     isLocked: Boolean,
-    onClearClick: () -> Unit,
     onToggleEmptyWall: () -> Unit,
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
