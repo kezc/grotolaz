@@ -12,6 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.browser.window
@@ -61,57 +63,41 @@ fun BoxScope.FloatingControls(
         horizontalAlignment = Alignment.End
     ) {
         // Zoom In button
-        FloatingActionButton(
+        FloatingIconButton(
             onClick = zoomCallbacks.onZoomIn,
-            modifier = Modifier.size(48.dp),
+            imageVector = Icons.Default.Add,
+            contentDescription = "Zoom In",
             containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Zoom In"
-            )
-        }
+        )
 
         // Zoom Out button
-        FloatingActionButton(
+        FloatingIconButton(
             onClick = zoomCallbacks.onZoomOut,
-            modifier = Modifier.size(48.dp),
+            imageVector = Icons.Default.Remove,
+            contentDescription = "Zoom Out",
             containerColor = MaterialTheme.colorScheme.primary
-        ) {
-            Icon(
-                imageVector = Icons.Default.Remove,
-                contentDescription = "Zoom Out"
-            )
-        }
+        )
 
         // Lock button
-        FloatingActionButton(
+        FloatingIconButton(
             onClick = onToggleLock,
-            modifier = Modifier.size(48.dp),
+            imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
             containerColor = if (isLocked) {
                 MaterialTheme.colorScheme.error
             } else {
                 MaterialTheme.colorScheme.secondary
-            }
-        ) {
-            Icon(
-                imageVector = if (isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                contentDescription = if (isLocked) "Locked" else "Unlocked"
-            )
-        }
+            },
+            contentDescription = if (isLocked) "Locked" else "Unlocked"
+        )
 
         // More options button with popup menu
         Box {
-            FloatingActionButton(
+            FloatingIconButton(
                 onClick = { showMenu = true },
-                modifier = Modifier.size(48.dp),
-                containerColor = MaterialTheme.colorScheme.secondary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More Options"
-                )
-            }
+                containerColor = MaterialTheme.colorScheme.secondary,
+                imageVector = Icons.Default.MoreVert,
+                contentDescription = "More Options"
+            )
 
             DropdownMenu(
                 expanded = showMenu,
@@ -236,4 +222,23 @@ fun BoxScope.FloatingControls(
             .align(Alignment.BottomCenter)
             .padding(bottom = 80.dp)
     )
+}
+
+@Composable
+fun FloatingIconButton(
+    onClick: () -> Unit,
+    imageVector: ImageVector,
+    contentDescription: String,
+    containerColor: Color
+) {
+    FloatingActionButton(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp),
+        containerColor = containerColor
+    ) {
+        Icon(
+            imageVector = imageVector,
+            contentDescription = contentDescription
+        )
+    }
 }
