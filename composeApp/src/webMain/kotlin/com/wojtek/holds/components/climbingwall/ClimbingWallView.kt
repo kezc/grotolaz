@@ -53,7 +53,6 @@ import kotlin.math.min
  * @param minZoom Minimum zoom level (default: 1f)
  * @param maxZoom Maximum zoom level (default: 5f)
  * @param zoomStep Zoom step multiplier (default: 1.2f)
- * @param zoomControlsContent Optional custom zoom controls composable
  * @param emptyWallImagePainter Optional painter for empty wall (without holds)
  * @param showEmptyWall Whether to show empty wall with only selected holds (default: false)
  * @param darkenNonSelected Whether to darken non-selected holds (default: false)
@@ -63,7 +62,6 @@ import kotlin.math.min
  * @param onToggleEmptyWall Optional callback when empty wall toggle is clicked (for floating controls)
  * @param onToggleDarkenNonSelected Optional callback when darken toggle is clicked (for floating controls)
  * @param onToggleBorders Optional callback when border toggle is clicked (for floating controls)
- * @param useFloatingControls Whether to use floating controls instead of default zoom controls (default: false)
  */
 @Composable
 fun ClimbingWallView(
@@ -80,17 +78,15 @@ fun ClimbingWallView(
     minZoom: Float = 1f,
     maxZoom: Float = 5f,
     zoomStep: Float = 1.2f,
-    zoomControlsContent: @Composable ((ZoomState, ZoomCallbacks) -> Unit)? = null,
     emptyWallImagePainter: Painter? = null,
     showEmptyWall: Boolean = false,
     darkenNonSelected: Boolean = false,
     showBorders: Boolean = true,
     isLocked: Boolean = false,
-    onToggleLock: (() -> Unit)? = null,
-    onToggleEmptyWall: (() -> Unit)? = null,
-    onToggleDarkenNonSelected: (() -> Unit)? = null,
-    onToggleBorders: (() -> Unit)? = null,
-    useFloatingControls: Boolean = false
+    onToggleLock: () -> Unit,
+    onToggleEmptyWall: () -> Unit,
+    onToggleDarkenNonSelected: () -> Unit,
+    onToggleBorders: () -> Unit,
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -299,28 +295,18 @@ fun ClimbingWallView(
                 }
             )
 
-            if (zoomControlsContent != null) {
-                zoomControlsContent(zoomState, zoomCallbacks)
-            } else if (useFloatingControls &&
-                       onToggleLock != null &&
-                       onToggleEmptyWall != null &&
-                       onToggleDarkenNonSelected != null &&
-                       onToggleBorders != null) {
-                FloatingControls(
-                    zoomState = zoomState,
-                    zoomCallbacks = zoomCallbacks,
-                    isLocked = isLocked,
-                    onToggleLock = onToggleLock,
-                    showEmptyWall = showEmptyWall,
-                    onToggleEmptyWall = onToggleEmptyWall,
-                    darkenNonSelected = darkenNonSelected,
-                    onToggleDarkenNonSelected = onToggleDarkenNonSelected,
-                    showBorders = showBorders,
-                    onToggleBorders = onToggleBorders
-                )
-            } else {
-                DefaultZoomControls(zoomState, zoomCallbacks)
-            }
+            FloatingControls(
+                zoomState = zoomState,
+                zoomCallbacks = zoomCallbacks,
+                isLocked = isLocked,
+                onToggleLock = onToggleLock,
+                showEmptyWall = showEmptyWall,
+                onToggleEmptyWall = onToggleEmptyWall,
+                darkenNonSelected = darkenNonSelected,
+                onToggleDarkenNonSelected = onToggleDarkenNonSelected,
+                showBorders = showBorders,
+                onToggleBorders = onToggleBorders
+            )
         }
     }
 }

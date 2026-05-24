@@ -157,7 +157,6 @@ private fun ClimbingWallContent(
             darkenNonSelected = darkenNonSelected,
             showBorders = showBorders,
             isLocked = isLocked,
-            useFloatingControls = true,
             onToggleLock = onToggleLock,
             onToggleEmptyWall = onToggleEmptyWall,
             onToggleDarkenNonSelected = onToggleDarkenNonSelected,
