@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
@@ -146,7 +147,6 @@ private fun ClimbingWallContent(
     onHoldClick: (Int) -> Unit
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
-        // Main climbing wall view
         ClimbingWallView(
             configuration = configuration,
             wallImagePainter = wallPainter,
@@ -165,20 +165,20 @@ private fun ClimbingWallContent(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Selection counter overlay (top-left)
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopStart)
-                .padding(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            tonalElevation = 4.dp,
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Text(
-                text = "Selected: ${selectedHoldIds.size} / ${configuration.holds.size}",
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
+        SelectionCounter(selectedHoldIds)
     }
+}
+
+@Composable
+private fun BoxScope.SelectionCounter(selectedHoldIds: Set<Int>) {
+    Text(
+        text = "${selectedHoldIds.size} chwytów", // TODO string resources
+        style = MaterialTheme.typography.titleMedium,
+        modifier = Modifier
+            .padding(16.dp)
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+            .align(Alignment.TopStart)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    )
 }
