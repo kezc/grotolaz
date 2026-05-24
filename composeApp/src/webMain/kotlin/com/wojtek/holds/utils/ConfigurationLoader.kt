@@ -1,16 +1,14 @@
 package com.wojtek.holds.utils
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.toComposeImageBitmap
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.model.HoldConfiguration
-import kotlinx.coroutines.launch
+import holds.composeapp.generated.resources.Res
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import holds.composeapp.generated.resources.Res
 import org.jetbrains.skia.Image as SkiaImage
 
 /**
@@ -56,19 +54,16 @@ fun rememberHoldConfiguration(
     onSuccess: ((HoldConfiguration) -> Unit)? = null,
     onError: ((String) -> Unit)? = null
 ): State<ConfigurationLoadResult> {
-    val loadResult = remember { mutableStateOf<ConfigurationLoadResult>(ConfigurationLoadResult.Loading) }
-    val scope = rememberCoroutineScope()
+    val loadResult = remember { mutableStateOf<ConfigurationLoadResult>(ConfigurationLoadResult.Loading ) }
 
     LaunchedEffect(version) {
-        scope.launch {
-            val result = loadHoldConfiguration(version)
-            loadResult.value = result
+        val result = loadHoldConfiguration(version)
+        loadResult.value = result
 
-            when (result) {
-                is ConfigurationLoadResult.Success -> onSuccess?.invoke(result.configuration)
-                is ConfigurationLoadResult.Error -> onError?.invoke(result.message)
-                ConfigurationLoadResult.Loading -> {}
-            }
+        when (result) {
+            is ConfigurationLoadResult.Success -> onSuccess?.invoke(result.configuration)
+            is ConfigurationLoadResult.Error -> onError?.invoke(result.message)
+            ConfigurationLoadResult.Loading -> {}
         }
     }
 
@@ -115,15 +110,8 @@ suspend fun loadVersionedImage(version: String, imageName: String): Painter? {
  * @return State containing the loaded Painter, or null if not loaded
  */
 @Composable
-fun rememberVersionedImage(version: String, imageName: String): State<Painter?> {
-    val painterState = remember { mutableStateOf<Painter?>(null) }
-    val scope = rememberCoroutineScope()
-
-    LaunchedEffect(version, imageName) {
-        scope.launch {
-            painterState.value = loadVersionedImage(version, imageName)
-        }
+fun rememberVersionedImage(version: String, imageName: String): State<Painter?> =
+    produceState(null) {
+        value = loadVersionedImage(version, imageName)
     }
 
-    return painterState
-}
