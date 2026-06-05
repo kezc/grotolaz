@@ -7,9 +7,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
+import com.wojtek.holds.database.ProblemRepository
+import com.wojtek.holds.model.HoldConfiguration
 import com.wojtek.holds.utils.ConfigurationLoadResult
 import com.wojtek.holds.utils.rememberHoldConfiguration
 import com.wojtek.holds.utils.rememberVersionedImage
@@ -21,7 +24,9 @@ import com.wojtek.holds.utils.rememberVersionedImage
  * This is a reference implementation using all the reusable components.
  */
 @Composable
-fun ClimbingWallApp() {
+fun ClimbingWallApp(
+    problemsRepository: ProblemRepository
+) {
     var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var showEmptyWall by remember { mutableStateOf(false) }
     var darkenNonSelected by remember { mutableStateOf(false) }
@@ -96,7 +101,8 @@ fun ClimbingWallApp() {
                                         selectedHoldIds + holdId
                                     }
                                 }
-                            }
+                            },
+                            problemsRepository = problemsRepository,
                         )
                     } else {
                         LoadingIndicator()
@@ -132,9 +138,9 @@ private fun BoxScope.ErrorDisplay(message: String) {
  */
 @Composable
 private fun ClimbingWallContent(
-    configuration: com.wojtek.holds.model.HoldConfiguration,
-    wallPainter: androidx.compose.ui.graphics.painter.Painter,
-    emptyPainter: androidx.compose.ui.graphics.painter.Painter,
+    configuration: HoldConfiguration,
+    wallPainter: Painter,
+    emptyPainter: Painter,
     selectedHoldIds: Set<Int>,
     showEmptyWall: Boolean,
     darkenNonSelected: Boolean,
@@ -144,7 +150,8 @@ private fun ClimbingWallContent(
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
     onToggleLock: () -> Unit,
-    onHoldClick: (Int) -> Unit
+    onHoldClick: (Int) -> Unit,
+    problemsRepository: ProblemRepository
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         ClimbingWallView(
@@ -161,7 +168,8 @@ private fun ClimbingWallContent(
             onToggleEmptyWall = onToggleEmptyWall,
             onToggleDarkenNonSelected = onToggleDarkenNonSelected,
             onToggleBorders = onToggleBorders,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            problemsRepository = problemsRepository
         )
 
         SelectionCounter(selectedHoldIds)

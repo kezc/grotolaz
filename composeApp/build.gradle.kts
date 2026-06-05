@@ -21,7 +21,7 @@ kotlin {
     }
 
     sourceSets {
-        // Configure source set hierarchy: commonMain -> webMain -> (jsMain + wasmJsMain)
+        // Configure source set hierarchy: commonMain -> xMain -> (jsMain + wasmJsMain)
         val webMain by creating {
             dependsOn(commonMain.get())
         }
@@ -42,7 +42,8 @@ kotlin {
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
-            implementation(libs.kotlinx.browser)
+//            implementation(libs.kotlinx.browser)
+            implementation(libs.kotlinx.wrapper.browser)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
             implementation(libs.kotlinx.serialization.json)

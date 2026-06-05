@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -16,8 +17,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
+import com.wojtek.holds.database.Problem
+import com.wojtek.holds.database.ProblemRepository
 import kotlinx.browser.window
 import kotlinx.coroutines.launch
+import kotlin.time.Clock
 
 /**
  * Floating controls for mobile-friendly navigation.
@@ -49,6 +53,9 @@ fun BoxScope.FloatingControls(
     onToggleDarkenNonSelected: () -> Unit,
     showBorders: Boolean,
     onToggleBorders: () -> Unit,
+    problemsRepository: ProblemRepository,
+    version: String,
+    selectedHoldsId: Set<Int>,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -211,6 +218,42 @@ fun BoxScope.FloatingControls(
                         }
                     }
                 )
+
+
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Save,
+                                contentDescription = "Save"
+                            )
+                            Text("Save boulder")
+                        }
+                    },
+                    onClick = {
+                        showMenu = false
+                        scope.launch {
+                            try {
+                                problemsRepository.save(
+                                    Problem(
+                                        name = Clock.System.now().epochSeconds.toString(),
+                                        id = Clock.System.now().epochSeconds.toInt(),
+                                        createdAt = Clock.System.now().epochSeconds,
+                                        updatedAt = Clock.System.now().epochSeconds,
+                                        version = version,
+                                        holdsIds = selectedHoldsId.toList(),
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                )
+
             }
         }
     }

@@ -2,8 +2,8 @@
 androidx-lifecycle = "2.11.0-beta01"
 composeMultiplatform = "1.12.0-alpha01"
 junit = "4.13.2"
-kotlin = "2.3.21"
-kotlinx-serialization = "1.8.0"
+kotlin = "2.4.0"
+kotlinx-serialization = "1.11.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
@@ -13,6 +13,7 @@ androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecyc
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-browser = "org.jetbrains.kotlinx:kotlinx-browser:0.5.0"
+kotlinx-wrapper-browser = "org.jetbrains.kotlin-wrappers:kotlin-browser:2026.6.2"
 
 [plugins]
 composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
