@@ -56,6 +56,7 @@ fun BoxScope.FloatingControls(
     problemsRepository: ProblemRepository,
     version: String,
     selectedHoldsId: Set<Int>,
+    showSaveDialog: (Problem) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var showMenu by remember { mutableStateOf(false) }
@@ -236,20 +237,16 @@ fun BoxScope.FloatingControls(
                     onClick = {
                         showMenu = false
                         scope.launch {
-                            try {
-                                problemsRepository.save(
-                                    Problem(
-                                        name = Clock.System.now().epochSeconds.toString(),
-                                        id = Clock.System.now().epochSeconds.toInt(),
-                                        createdAt = Clock.System.now().epochSeconds,
-                                        updatedAt = Clock.System.now().epochSeconds,
-                                        version = version,
-                                        holdsIds = selectedHoldsId.toList(),
-                                    )
+                            showSaveDialog(
+                                Problem(
+                                    name = Clock.System.now().epochSeconds.toString(),
+                                    id = Clock.System.now().epochSeconds.toInt(),
+                                    createdAt = Clock.System.now().epochSeconds,
+                                    updatedAt = Clock.System.now().epochSeconds,
+                                    version = version,
+                                    holdsIds = selectedHoldsId.toList(),
                                 )
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
+                            )
                         }
                     }
                 )

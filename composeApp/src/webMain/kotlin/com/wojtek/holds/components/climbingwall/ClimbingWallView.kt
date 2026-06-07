@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.Hold
 import com.wojtek.holds.model.HoldConfiguration
@@ -89,6 +90,7 @@ fun ClimbingWallView(
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
     problemsRepository: ProblemRepository,
+    showSaveDialog: (Problem) -> Unit
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -310,7 +312,8 @@ fun ClimbingWallView(
                 onToggleBorders = onToggleBorders,
                 problemsRepository = problemsRepository,
                 version = configuration.version,
-                selectedHoldsId = selectedHoldIds
+                selectedHoldsId = selectedHoldIds,
+                showSaveDialog = showSaveDialog
             )
         }
     }
