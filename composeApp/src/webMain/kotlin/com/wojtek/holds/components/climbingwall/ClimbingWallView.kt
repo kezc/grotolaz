@@ -90,7 +90,8 @@ fun ClimbingWallView(
     onToggleDarkenNonSelected: () -> Unit,
     onToggleBorders: () -> Unit,
     problemsRepository: ProblemRepository,
-    showSaveDialog: (Problem) -> Unit
+    showSaveDialog: (Problem) -> Unit,
+    showProblemsDialog: () -> Unit
 ) {
     var containerSize by remember { mutableStateOf(IntSize.Zero) }
 
@@ -313,7 +314,8 @@ fun ClimbingWallView(
                 problemsRepository = problemsRepository,
                 version = configuration.version,
                 selectedHoldsId = selectedHoldIds,
-                showSaveDialog = showSaveDialog
+                showSaveDialog = showSaveDialog,
+                showProblemsDialog = showProblemsDialog,
             )
         }
     }

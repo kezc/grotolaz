@@ -41,7 +41,7 @@ fun SaveDialog(onDismissRequest: () -> Unit, problemRepository: ProblemRepositor
             AppButton("Save") {
                 coroutineScope.launch {
                     isLoading = true
-                    problemRepository.save(problem)
+                    problemRepository.save(problem.copy(name = name))
                     onDismissRequest()
                 }
             }

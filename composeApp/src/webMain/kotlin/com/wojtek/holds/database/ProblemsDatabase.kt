@@ -60,6 +60,25 @@ class ProblemRepository(coroutineScope: CoroutineScope) {
         }
     }
 
+    suspend fun getAll(): List<Problem> {
+        val db = db.await()
+        val request = db.transaction(storeName, IDBTransactionMode.readonly)
+            .objectStore(storeName)
+            .getAll()
+
+        return suspendCancellableCoroutine { cont ->
+            request.onsuccess = EventHandler {
+                val resultObj = request.result
+                try {
+                    cont.resume(resultObj.decode())
+                } catch (e: Exception) {
+                    cont.resumeWithException(Exception("Failed to deserialize problem", e))
+                }
+            }
+            request.onerror = EventHandler { cont.resumeWithException(Exception("Failed to fetch problem")) }
+        }
+    }
+
     suspend fun getById(id: Int): Problem? {
         val db = db.await()
 

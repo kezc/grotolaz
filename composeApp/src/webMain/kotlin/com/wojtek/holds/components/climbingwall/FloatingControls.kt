@@ -3,6 +3,7 @@ package com.wojtek.holds.components.climbingwall
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MoreVert
@@ -57,7 +58,8 @@ fun BoxScope.FloatingControls(
     version: String,
     selectedHoldsId: Set<Int>,
     showSaveDialog: (Problem) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    showProblemsDialog: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
@@ -248,6 +250,24 @@ fun BoxScope.FloatingControls(
                                 )
                             )
                         }
+                    }
+                )
+
+                DropdownMenuItem(
+                    text =  {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.List,
+                                contentDescription = null
+                            )
+                            Text("Show boulders")
+                        }
+                    },
+                    onClick = {
+                        showProblemsDialog()
                     }
                 )
 

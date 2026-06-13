@@ -11,6 +11,7 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
+import com.wojtek.holds.components.climbingwall.ProblemsListDialog
 import com.wojtek.holds.components.climbingwall.SaveDialog
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
@@ -156,6 +157,7 @@ private fun ClimbingWallContent(
     problemsRepository: ProblemRepository
 ) {
     var saveDialogData by remember { mutableStateOf<Problem?>(null) }
+    var showProblemsDialog by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()) {
         ClimbingWallView(
             configuration = configuration,
@@ -173,7 +175,8 @@ private fun ClimbingWallContent(
             onToggleBorders = onToggleBorders,
             modifier = Modifier.fillMaxSize(),
             problemsRepository = problemsRepository,
-            showSaveDialog = { problem -> saveDialogData = problem }
+            showSaveDialog = { problem -> saveDialogData = problem },
+            showProblemsDialog = { showProblemsDialog = true }
         )
 
         SelectionCounter(selectedHoldIds)
@@ -183,6 +186,13 @@ private fun ClimbingWallContent(
                 onDismissRequest = { saveDialogData = null },
                 problemRepository = problemsRepository,
                 problem = it
+            )
+        }
+
+        if (showProblemsDialog) {
+            ProblemsListDialog(
+                problemRepository = problemsRepository,
+                onDialogDismiss = { showProblemsDialog = false }
             )
         }
     }
