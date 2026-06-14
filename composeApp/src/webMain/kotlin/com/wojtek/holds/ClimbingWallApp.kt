@@ -8,11 +8,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
 import com.wojtek.holds.components.climbingwall.ProblemsListDialog
 import com.wojtek.holds.components.climbingwall.SaveDialog
+import com.wojtek.holds.components.climbingwall.generateRouteImageBitmap
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.HoldConfiguration
@@ -182,17 +185,31 @@ private fun ClimbingWallContent(
         SelectionCounter(selectedHoldIds)
 
         saveDialogData?.let {
+            val density = LocalDensity.current
+            val layoutDirection = LocalLayoutDirection.current
             SaveDialog(
                 onDismissRequest = { saveDialogData = null },
                 problemRepository = problemsRepository,
-                problem = it
+                problem = it,
+                getImage = {
+                    generateRouteImageBitmap(
+                        configuration = configuration,
+                        wallImagePainter = wallPainter,
+                        selectedHoldIds = selectedHoldIds,
+                        density = density,
+                        layoutDirection = layoutDirection,
+                        darkenNonSelected = true,
+                        showEmptyWall = true,
+                        emptyWallImagePainter = emptyPainter
+                    )
+                }
             )
         }
 
         if (showProblemsDialog) {
             ProblemsListDialog(
                 problemRepository = problemsRepository,
-                onDialogDismiss = { showProblemsDialog = false }
+                onDialogDismiss = { showProblemsDialog = false },
             )
         }
     }

@@ -147,4 +147,5 @@ data class Problem(
     val holdsIds: List<Int>,
     val createdAt: Long,
     val updatedAt: Long,
+    val imageBase64: String? = null
 )

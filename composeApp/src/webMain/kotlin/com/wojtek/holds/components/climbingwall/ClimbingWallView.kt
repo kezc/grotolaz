@@ -269,7 +269,8 @@ fun ClimbingWallView(
                                 drawHoldBorder(
                                     hold = hold,
                                     displayParams = displayParams,
-                                    borderColor = selectedColor
+                                    borderColor = selectedColor,
+                                    strokeWidth = 2f
                                 )
                             }
                         }
@@ -550,14 +551,15 @@ internal fun DrawScope.drawHoldDarkOverlay(
 internal fun DrawScope.drawHoldBorder(
     hold: Hold,
     displayParams: DisplayParameters,
-    borderColor: Color
+    borderColor: Color,
+    strokeWidth: Float
 ) {
     if (hold.polygon.isNotEmpty()) {
         val path = createHoldPath(hold.polygon, displayParams)
         drawPath(
             path = path,
             color = borderColor,
-            style = Stroke(width = 2f)
+            style = Stroke(width = strokeWidth)
         )
     } else {
         val topLeft = Offset(
@@ -572,7 +574,7 @@ internal fun DrawScope.drawHoldBorder(
             color = borderColor,
             topLeft = topLeft,
             size = size,
-            style = Stroke(width = 2f)
+            style = Stroke(width = strokeWidth)
         )
     }
 }
