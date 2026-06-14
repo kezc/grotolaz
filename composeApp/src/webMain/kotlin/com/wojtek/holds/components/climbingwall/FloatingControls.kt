@@ -268,6 +268,7 @@ fun BoxScope.FloatingControls(
                     },
                     onClick = {
                         showProblemsDialog()
+                        showMenu = false
                     }
                 )
 

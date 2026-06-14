@@ -109,6 +109,7 @@ fun ClimbingWallApp(
                                 }
                             },
                             problemsRepository = problemsRepository,
+                            selectHolds = { selectedHoldIds = it}
                         )
                     } else {
                         LoadingIndicator()
@@ -157,7 +158,8 @@ private fun ClimbingWallContent(
     onToggleBorders: () -> Unit,
     onToggleLock: () -> Unit,
     onHoldClick: (Int) -> Unit,
-    problemsRepository: ProblemRepository
+    problemsRepository: ProblemRepository,
+    selectHolds: (Set<Int>) -> Unit
 ) {
     var saveDialogData by remember { mutableStateOf<Problem?>(null) }
     var showProblemsDialog by remember { mutableStateOf(false) }
@@ -210,6 +212,7 @@ private fun ClimbingWallContent(
             ProblemsListDialog(
                 problemRepository = problemsRepository,
                 onDialogDismiss = { showProblemsDialog = false },
+                loadProblem = { selectHolds(it.holdsIds.toSet()) }
             )
         }
     }

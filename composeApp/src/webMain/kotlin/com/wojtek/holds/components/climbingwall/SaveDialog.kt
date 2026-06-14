@@ -44,7 +44,7 @@ fun SaveDialog(
 ) {
     Dialog(
         onDismissRequest = onDismissRequest,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        properties = DialogProperties(),
     ) {
         Column(
             Modifier

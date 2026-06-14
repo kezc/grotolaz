@@ -2,6 +2,7 @@
 
 package com.wojtek.holds.database
 
+import com.wojtek.holds.utils.Base64Image
 import kotlinx.coroutines.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -147,5 +148,5 @@ data class Problem(
     val holdsIds: List<Int>,
     val createdAt: Long,
     val updatedAt: Long,
-    val imageBase64: String? = null
+    val imageBase64: Base64Image? = null
 )
