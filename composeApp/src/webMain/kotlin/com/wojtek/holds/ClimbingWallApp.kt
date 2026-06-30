@@ -31,17 +31,15 @@ import com.wojtek.holds.utils.rememberVersionedImage
  */
 @Composable
 fun ClimbingWallApp(
-    problemsRepository: ProblemRepository
+    problemsRepository: ProblemRepository,
+    initialHolds: Set<Int>,
+    version: String,
 ) {
     var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var showEmptyWall by remember { mutableStateOf(false) }
     var darkenNonSelected by remember { mutableStateOf(false) }
     var showBorders by remember { mutableStateOf(true) }
     var isLocked by remember { mutableStateOf(false) }
-
-    // Get version from URL, default to DEFAULT_VERSION if not present
-    val (urlVersion, urlHolds) = remember { UrlSync.decodeFromUrl() }
-    val version = urlVersion ?: DEFAULT_VERSION
 
     // Load configuration for the requested version
     val configurationResult = rememberHoldConfiguration(version = version)
@@ -59,8 +57,8 @@ fun ClimbingWallApp(
 
     // Load selected holds from URL after config is loaded
     LaunchedEffect(configurationResult.value) {
-        if (configurationResult.value is ConfigurationLoadResult.Success && urlHolds.isNotEmpty()) {
-            selectedHoldIds = urlHolds
+        if (configurationResult.value is ConfigurationLoadResult.Success && initialHolds.isNotEmpty()) {
+            selectedHoldIds = initialHolds
         }
     }
 
@@ -68,7 +66,7 @@ fun ClimbingWallApp(
     LaunchedEffect(selectedHoldIds) {
         if (configurationResult.value is ConfigurationLoadResult.Success) {
             val config = (configurationResult.value as ConfigurationLoadResult.Success).configuration
-            UrlSync.encodeToUrl(selectedHoldIds, config.version)
+            SilentUrlUpdater.updateHoldsInUrl(selectedHoldIds, config.version)
         }
     }
 
