@@ -67,10 +67,9 @@ import kotlin.math.min
  */
 @Composable
 fun ClimbingWallView(
+    state: ClimbingWallState,
     configuration: HoldConfiguration,
     wallImagePainter: Painter,
-    selectedHoldIds: Set<Int>,
-    onHoldClick: (Int) -> Unit,
     modifier: Modifier = Modifier,
     showZoomControls: Boolean = true,
     selectedColor: Color = Color.Green,
@@ -81,39 +80,24 @@ fun ClimbingWallView(
     maxZoom: Float = 5f,
     zoomStep: Float = 1.2f,
     emptyWallImagePainter: Painter? = null,
-    showEmptyWall: Boolean = false,
-    darkenNonSelected: Boolean = false,
-    showBorders: Boolean = true,
-    isLocked: Boolean = false,
-    onToggleLock: () -> Unit,
-    onToggleEmptyWall: () -> Unit,
-    onToggleDarkenNonSelected: () -> Unit,
-    onToggleBorders: () -> Unit,
     problemsRepository: ProblemRepository,
     showSaveDialog: (Problem) -> Unit,
     showProblemsDialog: () -> Unit
 ) {
-    var containerSize by remember { mutableStateOf(IntSize.Zero) }
-
-    // Zoom and pan state
-    var scale by remember { mutableStateOf(1f) }
-    var offsetX by remember { mutableStateOf(0f) }
-    var offsetY by remember { mutableStateOf(0f) }
-
     // Calculate display parameters based on container size (without zoom/pan)
-    val displayParams = remember(containerSize, configuration) {
-        calculateDisplayParameters(containerSize, configuration)
+    val displayParams = remember(state.containerSize, configuration) {
+        calculateDisplayParameters(state.containerSize, configuration)
     }
 
     // Pre-calculate and cache the dark mask path for background
     // Only exclude all holds from this mask (not dependent on selection)
-    val backgroundMaskPath = remember(displayParams, configuration, containerSize) {
-        if (displayParams.isValid && containerSize.width > 0 && containerSize.height > 0) {
+    val backgroundMaskPath = remember(displayParams, configuration, state.containerSize) {
+        if (displayParams.isValid && state.containerSize.width > 0 && state.containerSize.height > 0) {
             createDarkMaskPath(
                 holds = configuration.holds,
                 displayParams = displayParams,
-                canvasWidth = containerSize.width.toFloat(),
-                canvasHeight = containerSize.height.toFloat()
+                canvasWidth = state.containerSize.width.toFloat(),
+                canvasHeight = state.containerSize.height.toFloat()
             )
         } else {
             null
@@ -123,7 +107,7 @@ fun ClimbingWallView(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .onSizeChanged { size -> containerSize = size },
+            .onSizeChanged { size -> state.containerSize = size },
         contentAlignment = Alignment.Center
     ) {
         // Content box that contains both image and overlays with zoom and pan applied
@@ -131,25 +115,25 @@ fun ClimbingWallView(
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer(
-                    scaleX = scale,
-                    scaleY = scale,
+                    scaleX = state.scale,
+                    scaleY = state.scale,
                     clip = false
                 )
                 .offset {
-                    IntOffset(offsetX.toInt(), offsetY.toInt())
+                    IntOffset(state.offsetX.toInt(), state.offsetY.toInt())
                 }
                 .pointerInput(Unit) {
                     // Detect pinch-to-zoom and pan gestures
                     detectTransformGestures(
                         panZoomLock = false
                     ) { centroid, pan, zoom, rotation ->
-                        val oldScale = scale
+                        val oldScale = state.scale
 
                         // Apply zoom with constraints
-                        scale = (scale * zoom).coerceIn(minZoom, maxZoom)
+                        state.scale = (state.scale * zoom).coerceIn(minZoom, maxZoom)
 
                         // Calculate zoom factor applied
-                        val zoomFactor = scale / oldScale
+                        val zoomFactor = state.scale / oldScale
 
                         // Handle zoom transformation
                         if (zoomFactor != 1f) {
@@ -160,25 +144,25 @@ fun ClimbingWallView(
                             val deltaY = centroid.y - centerY
 
                             // Adjust offsets to zoom towards the gesture centroid
-                            offsetX = (offsetX + deltaX) * zoomFactor - deltaX
-                            offsetY = (offsetY + deltaY) * zoomFactor - deltaY
+                            state.offsetX = (state.offsetX + deltaX) * zoomFactor - deltaX
+                            state.offsetY = (state.offsetY + deltaY) * zoomFactor - deltaY
                         } else {
                             // Only apply pan when not zooming (pure drag gesture)
                             // This gives 1:1 cursor-to-content tracking
-                            offsetX += pan.x
-                            offsetY += pan.y
+                            state.offsetX += pan.x
+                            state.offsetY += pan.y
                         }
 
                         // Reset pan when at minimum zoom
-                        if (scale <= minZoom) {
-                            offsetX = 0f
-                            offsetY = 0f
+                        if (state.scale <= minZoom) {
+                            state.offsetX = 0f
+                            state.offsetY = 0f
                         }
                     }
                 }
         ) {
             // Background empty wall image when in empty wall mode
-            if (showEmptyWall && emptyWallImagePainter != null) {
+            if (state.showEmptyWall && emptyWallImagePainter != null) {
                 Image(
                     painter = emptyWallImagePainter,
                     contentDescription = "Empty climbing wall",
@@ -188,7 +172,7 @@ fun ClimbingWallView(
             }
 
             // Full wall image in normal mode
-            if (!showEmptyWall) {
+            if (!state.showEmptyWall) {
                 Image(
                     painter = wallImagePainter,
                     contentDescription = "Climbing wall",
@@ -198,12 +182,12 @@ fun ClimbingWallView(
             }
 
             // Clipped hold images in empty wall mode
-            if (showEmptyWall && displayParams.isValid) {
+            if (state.showEmptyWall && displayParams.isValid) {
                 Canvas(
                     modifier = Modifier.fillMaxSize()
                 ) {
                     configuration.holds.forEach { hold ->
-                        if (hold.id in selectedHoldIds) {
+                        if (hold.id in state.selectedHoldIds) {
                             drawHoldImage(
                                 hold = hold,
                                 wallImagePainter = wallImagePainter,
@@ -219,19 +203,19 @@ fun ClimbingWallView(
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(displayParams, scale, isLocked) {
+                        .pointerInput(displayParams, state.scale, state.isLocked) {
                             detectTapGestures { tapOffset ->
-                                if (!isLocked) {
+                                if (!state.isLocked) {
                                     findClickedHold(
                                         tapOffset = tapOffset,
                                         holds = configuration.holds,
                                         displayParams = displayParams
-                                    )?.let { onHoldClick(it.id) }
+                                    )?.let { state.toggleHold(it.id) }
                                 }
                             }
                         }
                 ) {
-                    if (!showEmptyWall) {
+                    if (!state.showEmptyWall) {
                         // First, draw a dark mask over the background (excluding all holds)
                         if (backgroundMaskPath != null) {
                             drawPath(
@@ -242,9 +226,9 @@ fun ClimbingWallView(
                         }
 
                         // If darkening non-selected holds, draw dark overlays on them
-                        if (darkenNonSelected) {
+                        if (state.darkenNonSelected) {
                             configuration.holds.forEach { hold ->
-                                if (hold.id !in selectedHoldIds) {
+                                if (hold.id !in state.selectedHoldIds) {
                                     drawHoldDarkOverlay(
                                         hold = hold,
                                         displayParams = displayParams
@@ -257,15 +241,15 @@ fun ClimbingWallView(
                     // Draw borders on selected holds
                     // In normal mode: always show borders when darken non-selected is off
                     // In empty wall mode: respect the showBorders setting
-                    val shouldShowBorders = if (showEmptyWall) {
-                        showBorders
+                    val shouldShowBorders = if (state.showEmptyWall) {
+                        state.showBorders
                     } else {
-                        showBorders || !darkenNonSelected
+                        state.showBorders || !state.darkenNonSelected
                     }
 
                     if (shouldShowBorders) {
                         configuration.holds.forEach { hold ->
-                            if (hold.id in selectedHoldIds) {
+                            if (hold.id in state.selectedHoldIds) {
                                 drawHoldBorder(
                                     hold = hold,
                                     displayParams = displayParams,
@@ -281,40 +265,33 @@ fun ClimbingWallView(
 
         // Zoom controls
         if (showZoomControls) {
-            val zoomState = ZoomState(scale = scale)
+            val zoomState = ZoomState(scale = state.scale)
             val zoomCallbacks = ZoomCallbacks(
                 onZoomIn = {
-                    scale = min(scale * zoomStep, maxZoom)
+                    state.zoomIn(zoomStep, maxZoom)
                 },
                 onZoomOut = {
-                    scale = max(scale / zoomStep, minZoom)
-                    // Reset pan when zooming out to minimum
-                    if (scale <= minZoom) {
-                        offsetX = 0f
-                        offsetY = 0f
-                    }
+                    state.zoomOut(zoomStep, minZoom)
                 },
                 onReset = {
-                    scale = 1f
-                    offsetX = 0f
-                    offsetY = 0f
+                    state.resetZoomAndPan()
                 }
             )
 
             FloatingControls(
                 zoomState = zoomState,
                 zoomCallbacks = zoomCallbacks,
-                isLocked = isLocked,
-                onToggleLock = onToggleLock,
-                showEmptyWall = showEmptyWall,
-                onToggleEmptyWall = onToggleEmptyWall,
-                darkenNonSelected = darkenNonSelected,
-                onToggleDarkenNonSelected = onToggleDarkenNonSelected,
-                showBorders = showBorders,
-                onToggleBorders = onToggleBorders,
+                isLocked = state.isLocked,
+                onToggleLock = { state.toggleLock() },
+                showEmptyWall = state.showEmptyWall,
+                onToggleEmptyWall = { state.toggleEmptyWall() },
+                darkenNonSelected = state.darkenNonSelected,
+                onToggleDarkenNonSelected = { state.toggleDarkenNonSelected() },
+                showBorders = state.showBorders,
+                onToggleBorders = { state.toggleBorders() },
                 problemsRepository = problemsRepository,
                 version = configuration.version,
-                selectedHoldsId = selectedHoldIds,
+                selectedHoldsId = state.selectedHoldIds,
                 showSaveDialog = showSaveDialog,
                 showProblemsDialog = showProblemsDialog,
             )

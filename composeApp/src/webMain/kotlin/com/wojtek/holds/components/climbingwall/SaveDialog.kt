@@ -42,21 +42,32 @@ fun SaveDialog(
     onDismissRequest: () -> Unit,
     problemRepository: ProblemRepository,
     problem: Problem,
+    climbingWallState: ClimbingWallState
 ) {
     val density = LocalDensity.current
     val layoutDirection = LocalLayoutDirection.current
 
-    fun getImage() =ImageBitmap(10, 10)
-//        generateRouteImageBitmap(
-//            configuration = configuration,
-//            wallImagePainter = wallPainter,
-//            selectedHoldIds = selectedHoldIds,
-//            density = density,
-//            layoutDirection = layoutDirection,
-//            darkenNonSelected = true,
-//            showEmptyWall = true,
-//            emptyWallImagePainter = emptyPainter
-//        )
+    fun getImage(): ImageBitmap {
+        val configuration = climbingWallState.configuration
+        val wallPainter = climbingWallState.wallPainter
+        val emptyPainter = climbingWallState.emptyPainter
+        val selectedHoldIds = climbingWallState.selectedHoldIds
+
+        if (configuration == null || wallPainter == null) {
+            return ImageBitmap(10, 10)
+        }
+
+        return generateRouteImageBitmap(
+            configuration = configuration,
+            wallImagePainter = wallPainter,
+            selectedHoldIds = selectedHoldIds,
+            density = density,
+            layoutDirection = layoutDirection,
+            darkenNonSelected = true,
+            showEmptyWall = true,
+            emptyWallImagePainter = emptyPainter
+        )
+    }
 
 
     Column(

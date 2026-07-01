@@ -10,13 +10,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavBackStackEntry
+import androidx.savedstate.write
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
 import com.wojtek.holds.components.climbingwall.ProblemsListDialog
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.HoldConfiguration
 import com.wojtek.holds.utils.ConfigurationLoadResult
-import com.wojtek.holds.utils.rememberHoldConfiguration
-import com.wojtek.holds.utils.rememberVersionedImage
+
+import com.wojtek.holds.components.climbingwall.ClimbingWallState
 
 /**
  * Main application composable for the climbing wall hold tracker.
@@ -27,42 +29,40 @@ import com.wojtek.holds.utils.rememberVersionedImage
 @Composable
 fun ClimbingWallApp(
     problemsRepository: ProblemRepository,
+    climbingWallState: ClimbingWallState,
     initialHolds: Set<Int>,
     version: String,
     navController: NavController,
+    backStackEntry: NavBackStackEntry,
 ) {
-    var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
-    var showEmptyWall by remember { mutableStateOf(false) }
-    var darkenNonSelected by remember { mutableStateOf(false) }
-    var showBorders by remember { mutableStateOf(true) }
-    var isLocked by remember { mutableStateOf(false) }
-
-    // Load configuration for the requested version
-    val configurationResult = rememberHoldConfiguration(version = version)
-
-    // Load versioned images
-    val wallImageState = rememberVersionedImage(version, "wall.png")
-    val emptyImageState = rememberVersionedImage(version, "empty.png")
+    // Load configuration and painters inside climbingWallState when version changes
+    LaunchedEffect(version) {
+        climbingWallState.loadVersion(version)
+    }
 
     // When show selected only is turned on, automatically turn off darken non-selected
-    LaunchedEffect(showEmptyWall) {
-        if (showEmptyWall) {
-            darkenNonSelected = false
+    LaunchedEffect(climbingWallState.showEmptyWall) {
+        if (climbingWallState.showEmptyWall) {
+            climbingWallState.darkenNonSelected = false
         }
     }
 
-    // Load selected holds from URL after config is loaded
-    LaunchedEffect(configurationResult.value) {
-        if (configurationResult.value is ConfigurationLoadResult.Success && initialHolds.isNotEmpty()) {
-            selectedHoldIds = initialHolds
+    // Sync initialHolds when it changes in the navigation/URL
+    LaunchedEffect(initialHolds) {
+        if (initialHolds != climbingWallState.selectedHoldIds) {
+            climbingWallState.selectedHoldIds = initialHolds
         }
     }
 
-    // Sync URL when selected holds change
-    LaunchedEffect(selectedHoldIds) {
-        if (configurationResult.value is ConfigurationLoadResult.Success) {
-            val config = (configurationResult.value as ConfigurationLoadResult.Success).configuration
-            SilentUrlUpdater.updateHoldsInUrl(selectedHoldIds, config.version)
+    // Sync URL and NavBackStackEntry when selected holds or configuration changes
+    LaunchedEffect(climbingWallState.selectedHoldIds, climbingWallState.configuration) {
+        val config = climbingWallState.configuration
+        if (config != null) {
+            SilentUrlUpdater.updateHoldsInUrl(climbingWallState.selectedHoldIds, config.version)
+            val holdsString = climbingWallState.selectedHoldIds.sorted().joinToString(",")
+            backStackEntry.arguments?.write {
+                putString("holds", holdsString)
+            }
         }
     }
 
@@ -72,12 +72,12 @@ fun ClimbingWallApp(
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
         ) {
-            when (val result = configurationResult.value) {
+            when (val result = climbingWallState.loadResult) {
                 is ConfigurationLoadResult.Loading -> LoadingIndicator()
                 is ConfigurationLoadResult.Error -> ErrorDisplay(result.message)
                 is ConfigurationLoadResult.Success -> {
-                    val wallPainter = wallImageState.value
-                    val emptyPainter = emptyImageState.value
+                    val wallPainter = climbingWallState.wallPainter
+                    val emptyPainter = climbingWallState.emptyPainter
 
                     if (wallPainter != null && emptyPainter != null) {
                         ClimbingWallContent(
@@ -85,26 +85,8 @@ fun ClimbingWallApp(
                             configuration = result.configuration,
                             wallPainter = wallPainter,
                             emptyPainter = emptyPainter,
-                            selectedHoldIds = selectedHoldIds,
-                            showEmptyWall = showEmptyWall,
-                            darkenNonSelected = darkenNonSelected,
-                            showBorders = showBorders,
-                            isLocked = isLocked,
-                            onToggleEmptyWall = { showEmptyWall = !showEmptyWall },
-                            onToggleDarkenNonSelected = { darkenNonSelected = !darkenNonSelected },
-                            onToggleBorders = { showBorders = !showBorders },
-                            onToggleLock = { isLocked = !isLocked },
-                            onHoldClick = { holdId ->
-                                if (!isLocked) {
-                                    selectedHoldIds = if (holdId in selectedHoldIds) {
-                                        selectedHoldIds - holdId
-                                    } else {
-                                        selectedHoldIds + holdId
-                                    }
-                                }
-                            },
-                            problemsRepository = problemsRepository,
-                            selectHolds = { selectedHoldIds = it}
+                            state = climbingWallState,
+                            problemsRepository = problemsRepository
                         )
                     } else {
                         LoadingIndicator()
@@ -144,48 +126,29 @@ private fun ClimbingWallContent(
     configuration: HoldConfiguration,
     wallPainter: Painter,
     emptyPainter: Painter,
-    selectedHoldIds: Set<Int>,
-    showEmptyWall: Boolean,
-    darkenNonSelected: Boolean,
-    showBorders: Boolean,
-    isLocked: Boolean,
-    onToggleEmptyWall: () -> Unit,
-    onToggleDarkenNonSelected: () -> Unit,
-    onToggleBorders: () -> Unit,
-    onToggleLock: () -> Unit,
-    onHoldClick: (Int) -> Unit,
-    problemsRepository: ProblemRepository,
-    selectHolds: (Set<Int>) -> Unit
+    state: ClimbingWallState,
+    problemsRepository: ProblemRepository
 ) {
     var showProblemsDialog by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()) {
         ClimbingWallView(
+            state = state,
             configuration = configuration,
             wallImagePainter = wallPainter,
-            selectedHoldIds = selectedHoldIds,
-            onHoldClick = onHoldClick,
             emptyWallImagePainter = emptyPainter,
-            showEmptyWall = showEmptyWall,
-            darkenNonSelected = darkenNonSelected,
-            showBorders = showBorders,
-            isLocked = isLocked,
-            onToggleLock = onToggleLock,
-            onToggleEmptyWall = onToggleEmptyWall,
-            onToggleDarkenNonSelected = onToggleDarkenNonSelected,
-            onToggleBorders = onToggleBorders,
             modifier = Modifier.fillMaxSize(),
             problemsRepository = problemsRepository,
             showSaveDialog = { problem -> navController.navigate(SaveDialog(problem)) },
             showProblemsDialog = { showProblemsDialog = true }
         )
 
-        SelectionCounter(selectedHoldIds)
+        SelectionCounter(state.selectedHoldIds)
 
         if (showProblemsDialog) {
             ProblemsListDialog(
                 problemRepository = problemsRepository,
                 onDialogDismiss = { showProblemsDialog = false },
-                loadProblem = { selectHolds(it.holdsIds.toSet()) }
+                loadProblem = { state.selectedHoldIds = it.holdsIds.toSet() }
             )
         }
     }
@@ -204,3 +167,4 @@ private fun BoxScope.SelectionCounter(selectedHoldIds: Set<Int>) {
             .padding(horizontal = 16.dp, vertical = 8.dp)
     )
 }
+

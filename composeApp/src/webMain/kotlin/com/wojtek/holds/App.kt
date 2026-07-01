@@ -14,7 +14,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import androidx.savedstate.read
 import com.wojtek.holds.Constants.DEFAULT_VERSION
+import com.wojtek.holds.components.climbingwall.ClimbingWallState
 import com.wojtek.holds.components.climbingwall.SaveDialog
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
@@ -26,7 +28,10 @@ import kotlin.reflect.typeOf
 
 @Composable
 fun App() {
-    App { navController ->
+    val coroutineScope = rememberCoroutineScope()
+    val climbingWallState = remember { ClimbingWallState(coroutineScope) }
+
+    App(climbingWallState) { navController ->
         val initRoute = window.location.hash.substringAfter('#', "")
         when {
             initRoute.startsWith("start") -> {
@@ -105,8 +110,13 @@ fun App() {
                     }
                     // 2. Bind the hash string to the browser URL
                     route.startsWith(WallRoute.serializer().descriptor.serialName) -> {
-                        // This now outputs #v=v1&holds=74,77,91
-                        entry.toRoute<WallRoute>().toBrowserHash()
+                        val version = entry.toRoute<WallRoute>().version
+                        val holds = climbingWallState.selectedHoldIds.sorted().joinToString(",")
+                        if (holds.isEmpty()) {
+                            "#v=$version"
+                        } else {
+                            "#v=$version&holds=$holds"
+                        }
                     }
 
                     else -> ""
@@ -141,6 +151,7 @@ data class WallRoute(val version: String = DEFAULT_VERSION, val holds: String = 
 
 @Composable
 internal fun App(
+    climbingWallState: ClimbingWallState,
     onNavHostReady: suspend (NavController) -> Unit = {}
 ) {
     val navController = rememberNavController()
@@ -152,11 +163,11 @@ internal fun App(
     ) {
         composable<SaveDialog>(typeMap = mapOf(typeOf<Problem>() to ProblemNavType)) { backStackEntry ->
             val args = backStackEntry.toRoute<SaveDialog>()
-
             SaveDialog(
                 onDismissRequest = { navController.popBackStack() },
                 problemRepository = problemsDatabase,
-                problem = args.problem
+                problem = args.problem,
+                climbingWallState = climbingWallState
             )
         }
         composable<Patient> { Text("Patient screen") }
@@ -164,11 +175,19 @@ internal fun App(
         // 3. The test composable
         composable<WallRoute> { backStackEntry ->
             val args = backStackEntry.toRoute<WallRoute>()
+            val versionArg = backStackEntry.arguments?.read { getString("version") } ?: args.version
+            val holdsArg = if (climbingWallState.configuration?.version == versionArg) {
+                climbingWallState.selectedHoldIds.sorted().joinToString(",")
+            } else {
+                backStackEntry.arguments?.read { getString("holds") } ?: args.holds
+            }
             ClimbingWallApp(
                 problemsRepository = problemsDatabase,
-                initialHolds = args.holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet(),
-                version = args.version,
+                climbingWallState = climbingWallState,
+                initialHolds = holdsArg.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet(),
+                version = versionArg,
                 navController = navController,
+                backStackEntry = backStackEntry,
             )
         }
     }
