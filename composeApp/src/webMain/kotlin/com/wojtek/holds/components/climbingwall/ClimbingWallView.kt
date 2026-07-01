@@ -463,24 +463,32 @@ internal fun createDarkMaskPath(
         addRect(Rect(0f, 0f, canvasWidth, canvasHeight))
     }
 
-    // Create a combined path of all holds
+    // Create a combined path of all holds by appending their coordinates directly
     val holdsPaths = Path()
     holds.forEach { hold ->
-        val holdPath = if (hold.polygon.isNotEmpty()) {
-            createHoldPath(hold.polygon, displayParams)
-        } else {
-            Path().apply {
-                addRect(
-                    Rect(
-                        left = hold.x * displayParams.scaleX + displayParams.offsetX,
-                        top = hold.y * displayParams.scaleY + displayParams.offsetY,
-                        right = (hold.x + hold.width) * displayParams.scaleX + displayParams.offsetX,
-                        bottom = (hold.y + hold.height) * displayParams.scaleY + displayParams.offsetY
-                    )
+        if (hold.polygon.isNotEmpty()) {
+            val firstPoint = hold.polygon.first()
+            holdsPaths.moveTo(
+                firstPoint.x * displayParams.scaleX + displayParams.offsetX,
+                firstPoint.y * displayParams.scaleY + displayParams.offsetY
+            )
+            hold.polygon.drop(1).forEach { point ->
+                holdsPaths.lineTo(
+                    point.x * displayParams.scaleX + displayParams.offsetX,
+                    point.y * displayParams.scaleY + displayParams.offsetY
                 )
             }
+            holdsPaths.close()
+        } else {
+            holdsPaths.addRect(
+                Rect(
+                    left = hold.x * displayParams.scaleX + displayParams.offsetX,
+                    top = hold.y * displayParams.scaleY + displayParams.offsetY,
+                    right = (hold.x + hold.width) * displayParams.scaleX + displayParams.offsetX,
+                    bottom = (hold.y + hold.height) * displayParams.scaleY + displayParams.offsetY
+                )
+            )
         }
-        holdsPaths.op(holdsPaths, holdPath, PathOperation.Union)
     }
 
     // Subtract holds from the full canvas to get the mask area
