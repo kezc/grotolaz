@@ -18,6 +18,7 @@ import androidx.savedstate.read
 import com.wojtek.holds.Constants.DEFAULT_VERSION
 import com.wojtek.holds.components.climbingwall.ClimbingWallState
 import com.wojtek.holds.components.climbingwall.SaveDialog
+import com.wojtek.holds.components.climbingwall.ProblemsListDialog
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.utils.ProblemNavType
@@ -36,6 +37,10 @@ fun App() {
         when {
             initRoute.startsWith("start") -> {
                 navController.navigate(StartScreen)
+            }
+
+            initRoute.startsWith("problems") -> {
+                navController.navigate(ProblemsListRoute)
             }
 
             initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
@@ -100,6 +105,7 @@ fun App() {
                 val route = entry.destination.route.orEmpty()
                 when {
                     route.startsWith(StartScreen.serializer().descriptor.serialName) -> "#start"
+                    route.startsWith(ProblemsListRoute.serializer().descriptor.serialName) -> "#problems"
                     route.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
                         SaveDialog.serializer().descriptor.serialName
                     }
@@ -130,6 +136,9 @@ fun App() {
 
 @Serializable
 data object StartScreen
+
+@Serializable
+data object ProblemsListRoute
 
 @Serializable
 data class SaveDialog(val problem: Problem)
@@ -168,6 +177,15 @@ internal fun App(
                 problemRepository = problemsDatabase,
                 problem = args.problem,
                 climbingWallState = climbingWallState
+            )
+        }
+        composable<ProblemsListRoute> {
+            ProblemsListDialog(
+                problemRepository = problemsDatabase,
+                onDialogDismiss = { navController.popBackStack() },
+                loadProblem = {
+                    climbingWallState.selectedHoldIds = it.holdsIds.toSet()
+                }
             )
         }
         composable<Patient> { Text("Patient screen") }

@@ -13,7 +13,6 @@ import androidx.navigation.NavController
 import androidx.navigation.NavBackStackEntry
 import androidx.savedstate.write
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
-import com.wojtek.holds.components.climbingwall.ProblemsListDialog
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.HoldConfiguration
 import com.wojtek.holds.utils.ConfigurationLoadResult
@@ -129,7 +128,6 @@ private fun ClimbingWallContent(
     state: ClimbingWallState,
     problemsRepository: ProblemRepository
 ) {
-    var showProblemsDialog by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()) {
         ClimbingWallView(
             state = state,
@@ -139,18 +137,10 @@ private fun ClimbingWallContent(
             modifier = Modifier.fillMaxSize(),
             problemsRepository = problemsRepository,
             showSaveDialog = { problem -> navController.navigate(SaveDialog(problem)) },
-            showProblemsDialog = { showProblemsDialog = true }
+            showProblemsDialog = { navController.navigate(ProblemsListRoute) }
         )
 
         SelectionCounter(state.selectedHoldIds)
-
-        if (showProblemsDialog) {
-            ProblemsListDialog(
-                problemRepository = problemsRepository,
-                onDialogDismiss = { showProblemsDialog = false },
-                loadProblem = { state.selectedHoldIds = it.holdsIds.toSet() }
-            )
-        }
     }
 }
 

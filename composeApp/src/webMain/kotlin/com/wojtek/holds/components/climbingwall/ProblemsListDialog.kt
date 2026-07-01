@@ -12,8 +12,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.utils.toImageBitmap
@@ -24,26 +22,20 @@ fun ProblemsListDialog(
     onDialogDismiss: () -> Unit,
     loadProblem: (Problem) -> Unit
 ) {
-    Dialog(
-        onDismissRequest = onDialogDismiss,
-        properties = DialogProperties(dismissOnBackPress = true)
+    Column(
+        Modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Column(
-            Modifier
-                .background(MaterialTheme.colorScheme.surface)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            val problems by getProblemsList(problemRepository)
-            LazyColumn {
-                items(problems, key = { it.id }) {
-                    Row(Modifier.clickable { loadProblem(it); onDialogDismiss() }) {
-                        Text(it.name)
-                        val bitmap = remember { it.imageBase64!!.toImageBitmap() }
-                        Image(bitmap, null, Modifier.size(100.dp))
-                    }
+        val problems by getProblemsList(problemRepository)
+        LazyColumn {
+            items(problems, key = { it.id }) {
+                Row(Modifier.clickable { loadProblem(it); onDialogDismiss() }) {
+                    Text(it.name)
+                    val bitmap = remember { it.imageBase64!!.toImageBitmap() }
+                    Image(bitmap, null, Modifier.size(100.dp))
                 }
             }
         }
