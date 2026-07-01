@@ -14,6 +14,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -37,16 +38,29 @@ fun ProblemsListDialog(
     loadProblem: (Problem) -> Unit
 ) {
     var problems by remember { mutableStateOf(emptyList<Problem>()) }
+    var searchQuery by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     fun refreshProblems() {
         coroutineScope.launch {
-            problems = problemRepository.getAll()
+            problems = problemRepository.getAll().sortedByDescending { it.createdAt }
         }
     }
 
     LaunchedEffect(problemRepository) {
         refreshProblems()
+    }
+
+    val filteredProblems = remember(problems, searchQuery) {
+        if (searchQuery.isBlank()) {
+            problems
+        } else {
+            problems.filter { problem ->
+                val displayName = if (problem.name.toLongOrNull() != null) "Unnamed Route" else problem.name
+                displayName.contains(searchQuery, ignoreCase = true) ||
+                        problem.version.contains(searchQuery, ignoreCase = true)
+            }
+        }
     }
 
     fun formatEpochSeconds(epochSeconds: Long): String {
@@ -148,12 +162,76 @@ fun ProblemsListDialog(
                         )
                     }
                 } else {
-                    // List
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(problems, key = { it.id }) { problem ->
+                    // Search Bar
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search routes...") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search"
+                            )
+                        },
+                        trailingIcon = {
+                            if (searchQuery.isNotEmpty()) {
+                                IconButton(onClick = { searchQuery = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Clear Search"
+                                    )
+                                }
+                            }
+                        },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = MaterialTheme.colorScheme.primary,
+                            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 16.dp)
+                    )
+
+                    if (filteredProblems.isEmpty()) {
+                        // Search empty state
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "No matches",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                modifier = Modifier.size(64.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No matching routes",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "We couldn't find any saved routes matching \"$searchQuery\".",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                        }
+                    } else {
+                        // List
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(filteredProblems, key = { it.id }) { problem ->
                             val bitmap = remember(problem.imageBase64) {
                                 problem.imageBase64?.toImageBitmap()
                             }
@@ -267,4 +345,5 @@ fun ProblemsListDialog(
             }
         }
     }
+}
 }
