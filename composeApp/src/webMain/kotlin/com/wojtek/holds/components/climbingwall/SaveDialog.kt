@@ -21,6 +21,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asSkiaBitmap
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -40,37 +42,47 @@ fun SaveDialog(
     onDismissRequest: () -> Unit,
     problemRepository: ProblemRepository,
     problem: Problem,
-    getImage: suspend () -> ImageBitmap
 ) {
-    Dialog(
-        onDismissRequest = onDismissRequest,
-        properties = DialogProperties(),
+    val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
+
+    fun getImage() =ImageBitmap(10, 10)
+//        generateRouteImageBitmap(
+//            configuration = configuration,
+//            wallImagePainter = wallPainter,
+//            selectedHoldIds = selectedHoldIds,
+//            density = density,
+//            layoutDirection = layoutDirection,
+//            darkenNonSelected = true,
+//            showEmptyWall = true,
+//            emptyWallImagePainter = emptyPainter
+//        )
+
+
+    Column(
+        Modifier
+            .background(MaterialTheme.colorScheme.surface)
+            .fillMaxSize()
     ) {
-        Column(
-            Modifier
-                .background(MaterialTheme.colorScheme.surface)
-                .fillMaxSize()
-        ) {
-            var name by remember { mutableStateOf("") }
-            var isLoading by remember { mutableStateOf(false) }
-            val coroutineScope = rememberCoroutineScope()
-            val imageDeferred = remember { coroutineScope.async { getImage() } }
-            val image: ImageBitmap? by produceState(null) { value = imageDeferred.await() }
-            image?.let {
-                Image(it, null, modifier = Modifier.border(1.dp, Color.Red).size(200.dp))
-            }
+        var name by remember { mutableStateOf("") }
+        var isLoading by remember { mutableStateOf(false) }
+        val coroutineScope = rememberCoroutineScope()
+        val imageDeferred = remember { coroutineScope.async { getImage() } }
+        val image: ImageBitmap? by produceState(null) { value = imageDeferred.await() }
+        image?.let {
+            Image(it, null, modifier = Modifier.border(1.dp, Color.Red).size(200.dp))
+        }
 
-            Text("Save boulder")
-            Text("Enter name")
-            TextField(value = name, onValueChange = { name = it })
-            AppButton("Save") {
-                coroutineScope.launch {
-                    isLoading = true
-                    val imagePng = withContext(Dispatchers.Default) { imageDeferred.await().toBase64() }
+        Text("Save boulder")
+        Text("Enter name")
+        TextField(value = name, onValueChange = { name = it })
+        AppButton("Save") {
+            coroutineScope.launch {
+                isLoading = true
+                val imagePng = withContext(Dispatchers.Default) { imageDeferred.await().toBase64() }
 
-                    problemRepository.save(problem.copy(name = name, imageBase64 = imagePng))
-                    onDismissRequest()
-                }
+                problemRepository.save(problem.copy(name = name, imageBase64 = imagePng))
+                onDismissRequest()
             }
         }
     }

@@ -2,17 +2,11 @@
 
 package com.wojtek.holds
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.NavController
 import androidx.navigation.bindToBrowserNavigation
@@ -21,10 +15,14 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.wojtek.holds.Constants.DEFAULT_VERSION
+import com.wojtek.holds.components.climbingwall.SaveDialog
+import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
+import com.wojtek.holds.utils.ProblemNavType
 import kotlinx.serialization.Serializable
 import web.events.*
 import web.window.window
+import kotlin.reflect.typeOf
 
 @Composable
 fun App() {
@@ -34,10 +32,11 @@ fun App() {
             initRoute.startsWith("start") -> {
                 navController.navigate(StartScreen)
             }
-            initRoute.startsWith("find_id") -> {
-                val id = initRoute.substringAfter("find_id_").toLong()
-                navController.navigate(Id(id))
+
+            initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
+                navController.navigate(WallRoute())
             }
+
             initRoute.startsWith("patient") -> {
                 val name = initRoute.substringAfter("patient_").substringBefore("_")
                 val id = initRoute.substringAfter("patient_").substringAfter("_").toLong()
@@ -62,32 +61,32 @@ fun App() {
             }
         }
 
-            val hashChangeListener = EventHandler {
-                // Read the new manually typed hash
-                val manualRoute = window.location.hash.substringAfter('#', "")
+        val hashChangeListener = EventHandler {
+            // Read the new manually typed hash
+            val manualRoute = window.location.hash.substringAfter('#', "")
 
-                if (manualRoute.startsWith("v=")) {
-                    val params = manualRoute.split("&").associate { param ->
-                        val parts = param.split("=", limit = 2)
-                        val key = parts.getOrNull(0) ?: ""
-                        val value = parts.getOrNull(1) ?: ""
-                        key to value
-                    }
-                    val version = params["v"] ?: "v1"
-                    val holds = params["holds"] ?: ""
-
-                    // Navigate to the newly typed URL state
-                    navController.navigate(WallRoute(version, holds)) {
-                        // Use singleTop so we don't blow up the backstack
-                        launchSingleTop = true
-                    }
+            if (manualRoute.startsWith("v=")) {
+                val params = manualRoute.split("&").associate { param ->
+                    val parts = param.split("=", limit = 2)
+                    val key = parts.getOrNull(0) ?: ""
+                    val value = parts.getOrNull(1) ?: ""
+                    key to value
                 }
-                // (Add else-if blocks here for other routes like Id or Patient if needed)
-            }
+                val version = params["v"] ?: "v1"
+                val holds = params["holds"] ?: ""
 
-            // Using 'hashchange' is often more reliable than 'popstate'
-            // when the user is ONLY modifying the fragment (#) in the address bar
-            val eventType = EventType<Event>("hashchange")
+                // Navigate to the newly typed URL state
+                navController.navigate(WallRoute(version, holds)) {
+                    // Use singleTop so we don't blow up the backstack
+                    launchSingleTop = true
+                }
+            }
+            // (Add else-if blocks here for other routes like Id or Patient if needed)
+        }
+
+        // Using 'hashchange' is often more reliable than 'popstate'
+        // when the user is ONLY modifying the fragment (#) in the address bar
+        val eventType = EventType<Event>("hashchange")
 
         try {
             window.addEventListener(eventType, hashChangeListener)
@@ -96,9 +95,8 @@ fun App() {
                 val route = entry.destination.route.orEmpty()
                 when {
                     route.startsWith(StartScreen.serializer().descriptor.serialName) -> "#start"
-                    route.startsWith(Id.serializer().descriptor.serialName) -> {
-                        val args = entry.toRoute<Id>()
-                        "#find_id_${args.id}"
+                    route.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
+                        SaveDialog.serializer().descriptor.serialName
                     }
 
                     route.startsWith(Patient.serializer().descriptor.serialName) -> {
@@ -122,12 +120,15 @@ fun App() {
 
 @Serializable
 data object StartScreen
+
 @Serializable
-data class Id(val id: Long)
+data class SaveDialog(val problem: Problem)
+
 @Serializable
 data class Patient(val name: String, val age: Long)
+
 @Serializable
-data class WallRoute(val version: String, val holds: String = "") {
+data class WallRoute(val version: String = DEFAULT_VERSION, val holds: String = "") {
     fun toBrowserHash(): String {
         return if (holds.isEmpty()) {
             "#v=$version"
@@ -141,7 +142,7 @@ data class WallRoute(val version: String, val holds: String = "") {
 @Composable
 internal fun App(
     onNavHostReady: suspend (NavController) -> Unit = {}
-)  {
+) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val problemsDatabase = remember { ProblemRepository(coroutineScope) }
@@ -149,26 +150,14 @@ internal fun App(
         navController = navController,
         startDestination = WallRoute(DEFAULT_VERSION, "")
     ) {
-        composable<StartScreen> {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text("Starting screen")
-                Button(onClick = { navController.navigate(Id(222)) }) {
-                    Text("Go to ID screen")
-                }
-                Button(onClick = { navController.navigate(WallRoute("v1", "")) }) {
-                    Text("Go to Wall Test Screen")
-                }
-            }
-        }
-        composable<Id> {
-            Text("ID screen")
-            Button(onClick = { navController.navigate(WallRoute("1", "1,2,3,4")) }) {
-                Text("Go to Patient screen")
-            }
+        composable<SaveDialog>(typeMap = mapOf(typeOf<Problem>() to ProblemNavType)) { backStackEntry ->
+            val args = backStackEntry.toRoute<SaveDialog>()
+
+            SaveDialog(
+                onDismissRequest = { navController.popBackStack() },
+                problemRepository = problemsDatabase,
+                problem = args.problem
+            )
         }
         composable<Patient> { Text("Patient screen") }
 
@@ -178,7 +167,8 @@ internal fun App(
             ClimbingWallApp(
                 problemsRepository = problemsDatabase,
                 initialHolds = args.holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet(),
-                version = args.version
+                version = args.version,
+                navController = navController,
             )
         }
     }

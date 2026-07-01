@@ -8,15 +8,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
-import com.wojtek.holds.Constants.DEFAULT_VERSION
+import androidx.navigation.NavController
 import com.wojtek.holds.components.climbingwall.ClimbingWallView
 import com.wojtek.holds.components.climbingwall.ProblemsListDialog
-import com.wojtek.holds.components.climbingwall.SaveDialog
-import com.wojtek.holds.components.climbingwall.generateRouteImageBitmap
-import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.HoldConfiguration
 import com.wojtek.holds.utils.ConfigurationLoadResult
@@ -34,6 +29,7 @@ fun ClimbingWallApp(
     problemsRepository: ProblemRepository,
     initialHolds: Set<Int>,
     version: String,
+    navController: NavController,
 ) {
     var selectedHoldIds by remember { mutableStateOf<Set<Int>>(emptySet()) }
     var showEmptyWall by remember { mutableStateOf(false) }
@@ -85,6 +81,7 @@ fun ClimbingWallApp(
 
                     if (wallPainter != null && emptyPainter != null) {
                         ClimbingWallContent(
+                            navController = navController,
                             configuration = result.configuration,
                             wallPainter = wallPainter,
                             emptyPainter = emptyPainter,
@@ -143,6 +140,7 @@ private fun BoxScope.ErrorDisplay(message: String) {
  */
 @Composable
 private fun ClimbingWallContent(
+    navController: NavController,
     configuration: HoldConfiguration,
     wallPainter: Painter,
     emptyPainter: Painter,
@@ -159,7 +157,6 @@ private fun ClimbingWallContent(
     problemsRepository: ProblemRepository,
     selectHolds: (Set<Int>) -> Unit
 ) {
-    var saveDialogData by remember { mutableStateOf<Problem?>(null) }
     var showProblemsDialog by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxSize()) {
         ClimbingWallView(
@@ -178,33 +175,11 @@ private fun ClimbingWallContent(
             onToggleBorders = onToggleBorders,
             modifier = Modifier.fillMaxSize(),
             problemsRepository = problemsRepository,
-            showSaveDialog = { problem -> saveDialogData = problem },
+            showSaveDialog = { problem -> navController.navigate(SaveDialog(problem)) },
             showProblemsDialog = { showProblemsDialog = true }
         )
 
         SelectionCounter(selectedHoldIds)
-
-        saveDialogData?.let {
-            val density = LocalDensity.current
-            val layoutDirection = LocalLayoutDirection.current
-            SaveDialog(
-                onDismissRequest = { saveDialogData = null },
-                problemRepository = problemsRepository,
-                problem = it,
-                getImage = {
-                    generateRouteImageBitmap(
-                        configuration = configuration,
-                        wallImagePainter = wallPainter,
-                        selectedHoldIds = selectedHoldIds,
-                        density = density,
-                        layoutDirection = layoutDirection,
-                        darkenNonSelected = true,
-                        showEmptyWall = true,
-                        emptyWallImagePainter = emptyPainter
-                    )
-                }
-            )
-        }
 
         if (showProblemsDialog) {
             ProblemsListDialog(
