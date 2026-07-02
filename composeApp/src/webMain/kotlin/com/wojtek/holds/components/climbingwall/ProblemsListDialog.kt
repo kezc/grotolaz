@@ -15,10 +15,12 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import kotlinx.browser.window
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -40,6 +42,7 @@ fun ProblemsListDialog(
     var problems by remember { mutableStateOf(emptyList<Problem>()) }
     var searchQuery by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     fun refreshProblems() {
         coroutineScope.launch {
@@ -315,7 +318,31 @@ fun ProblemsListDialog(
                                         )
                                     }
 
-                                    // Action Buttons: Delete and Load
+                                    // Action Buttons: Share, Delete and Load
+                                    IconButton(
+                                        onClick = {
+                                            coroutineScope.launch {
+                                                try {
+                                                    val baseUrl = window.location.href.substringBefore("#")
+                                                    val shareUrl = "$baseUrl#v=${problem.version}&holds=${problem.holdsIds.sorted().joinToString(",")}"
+                                                    window.navigator.clipboard.writeText(shareUrl)
+                                                    snackbarHostState.showSnackbar(
+                                                        message = "URL for \"$displayName\" copied to clipboard",
+                                                        duration = SnackbarDuration.Short
+                                                    )
+                                                } catch (e: Exception) {
+                                                    println("Failed to copy URL to clipboard: ${e.message}")
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Share,
+                                            contentDescription = "Share Route",
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
                                     IconButton(
                                         onClick = {
                                             coroutineScope.launch {
@@ -345,5 +372,12 @@ fun ProblemsListDialog(
             }
         }
     }
+
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 24.dp)
+    )
 }
 }
