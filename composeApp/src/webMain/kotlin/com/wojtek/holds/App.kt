@@ -1,9 +1,10 @@
-@file:OptIn(ExperimentalBrowserHistoryApi::class)
+@file:OptIn(ExperimentalBrowserHistoryApi::class, kotlin.js.ExperimentalWasmJsInterop::class)
 
 package com.wojtek.holds
 
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,6 +26,7 @@ import com.wojtek.holds.utils.ProblemNavType
 import kotlinx.serialization.Serializable
 import web.events.*
 import web.window.window
+import kotlin.js.unsafeCast
 import kotlin.reflect.typeOf
 
 @Composable
@@ -158,6 +160,10 @@ data class WallRoute(val version: String = DEFAULT_VERSION, val holds: String = 
 
 }
 
+external interface SafeBeforeUnloadEvent : kotlin.js.JsAny {
+    var returnValue: String
+}
+
 @Composable
 internal fun App(
     climbingWallState: ClimbingWallState,
@@ -166,6 +172,24 @@ internal fun App(
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val problemsDatabase = remember { ProblemRepository(coroutineScope) }
+    val hasUnsavedChanges = climbingWallState.selectedHoldIds.isNotEmpty()
+    DisposableEffect(hasUnsavedChanges) {
+        if (hasUnsavedChanges) {
+            val beforeUnloadType = EventType<Event>("beforeunload")
+            val listener = { event: Event ->
+                event.preventDefault()
+                val unloadEvent = event.unsafeCast<SafeBeforeUnloadEvent>()
+                unloadEvent.returnValue = ""
+            }
+            window.addEventListener(beforeUnloadType, listener)
+            onDispose {
+                window.removeEventListener(beforeUnloadType, listener)
+            }
+        } else {
+            onDispose {}
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = WallRoute(DEFAULT_VERSION, "")
