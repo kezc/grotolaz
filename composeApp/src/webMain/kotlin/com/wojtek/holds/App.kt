@@ -37,23 +37,14 @@ fun App() {
     App(climbingWallState) { navController ->
         val initRoute = window.location.hash.substringAfter('#', "")
         when {
-            initRoute.startsWith("start") -> {
-                navController.navigate(StartScreen)
-            }
-
             initRoute.startsWith("problems") -> {
                 navController.navigate(ProblemsListRoute)
             }
 
-            initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
+            initRoute.startsWith("save") || initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
                 navController.navigate(WallRoute())
             }
 
-            initRoute.startsWith("patient") -> {
-                val name = initRoute.substringAfter("patient_").substringBefore("_")
-                val id = initRoute.substringAfter("patient_").substringAfter("_").toLong()
-                navController.navigate(Patient(name, id))
-            }
             // 1. Intercept the new Wall Test route
             initRoute.startsWith("v=") -> {
                 println("Navigating to Wall screen from legacy URL")
@@ -68,6 +59,9 @@ fun App() {
 
                 val version = params["v"] ?: DEFAULT_VERSION
                 val holds = params["holds"] ?: ""
+                
+                val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
+                climbingWallState.selectedHoldIds = holdsSet
 
                 navController.navigate(WallRoute(version, holds))
             }
@@ -77,23 +71,39 @@ fun App() {
             // Read the new manually typed hash
             val manualRoute = window.location.hash.substringAfter('#', "")
 
-            if (manualRoute.startsWith("v=")) {
-                val params = manualRoute.split("&").associate { param ->
-                    val parts = param.split("=", limit = 2)
-                    val key = parts.getOrNull(0) ?: ""
-                    val value = parts.getOrNull(1) ?: ""
-                    key to value
+            when {
+                manualRoute.startsWith("problems") -> {
+                    navController.navigate(ProblemsListRoute) {
+                        launchSingleTop = true
+                    }
                 }
-                val version = params["v"] ?: "v1"
-                val holds = params["holds"] ?: ""
+                manualRoute.startsWith("save") -> {
+                    navController.navigate(WallRoute()) {
+                        launchSingleTop = true
+                    }
+                }
+                manualRoute.startsWith("v=") -> {
+                    val params = manualRoute.split("&").associate { param ->
+                        val parts = param.split("=", limit = 2)
+                        val key = parts.getOrNull(0) ?: ""
+                        val value = parts.getOrNull(1) ?: ""
+                        key to value
+                    }
+                    val version = params["v"] ?: DEFAULT_VERSION
+                    val holds = params["holds"] ?: ""
 
-                // Navigate to the newly typed URL state
-                navController.navigate(WallRoute(version, holds)) {
-                    // Use singleTop so we don't blow up the backstack
-                    launchSingleTop = true
+                    val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
+                    if (climbingWallState.selectedHoldIds != holdsSet) {
+                        climbingWallState.selectedHoldIds = holdsSet
+                    }
+
+                    // Navigate to the newly typed URL state
+                    navController.navigate(WallRoute(version, holds)) {
+                        // Use singleTop so we don't blow up the backstack
+                        launchSingleTop = true
+                    }
                 }
             }
-            // (Add else-if blocks here for other routes like Id or Patient if needed)
         }
 
         // Using 'hashchange' is often more reliable than 'popstate'
@@ -106,16 +116,9 @@ fun App() {
             navController.bindToBrowserNavigation { entry ->
                 val route = entry.destination.route.orEmpty()
                 when {
-                    route.startsWith(StartScreen.serializer().descriptor.serialName) -> "#start"
                     route.startsWith(ProblemsListRoute.serializer().descriptor.serialName) -> "#problems"
-                    route.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
-                        SaveDialog.serializer().descriptor.serialName
-                    }
+                    route.startsWith(SaveDialog.serializer().descriptor.serialName) -> "#save"
 
-                    route.startsWith(Patient.serializer().descriptor.serialName) -> {
-                        val args = entry.toRoute<Patient>()
-                        "#patient_${args.name}_${args.age}"
-                    }
                     // 2. Bind the hash string to the browser URL
                     route.startsWith(WallRoute.serializer().descriptor.serialName) -> {
                         val version = entry.toRoute<WallRoute>().version
@@ -137,28 +140,13 @@ fun App() {
 }
 
 @Serializable
-data object StartScreen
-
-@Serializable
 data object ProblemsListRoute
 
 @Serializable
 data class SaveDialog(val problem: Problem)
 
 @Serializable
-data class Patient(val name: String, val age: Long)
-
-@Serializable
-data class WallRoute(val version: String = DEFAULT_VERSION, val holds: String = "") {
-    fun toBrowserHash(): String {
-        return if (holds.isEmpty()) {
-            "#v=$version"
-        } else {
-            "#v=$version&holds=$holds"
-        }
-    }
-
-}
+data class WallRoute(val version: String = DEFAULT_VERSION, val holds: String = "")
 
 external interface SafeBeforeUnloadEvent : kotlin.js.JsAny {
     var returnValue: String
@@ -212,7 +200,6 @@ internal fun App(
                 }
             )
         }
-        composable<Patient> { Text("Ekran pacjenta") }
 
         // 3. The test composable
         composable<WallRoute> { backStackEntry ->
