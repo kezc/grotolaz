@@ -122,7 +122,7 @@ fun SaveDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Save Boulder",
+                        text = "Zapisz boulder",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -133,7 +133,7 @@ fun SaveDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = "Zamknij",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -158,7 +158,7 @@ fun SaveDialog(
                     if (image != null) {
                         Image(
                             bitmap = image!!,
-                            contentDescription = "Route Preview",
+                            contentDescription = "Podgląd drogi",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(8.dp)
@@ -174,7 +174,7 @@ fun SaveDialog(
                                 strokeWidth = 3.dp
                             )
                             Text(
-                                text = "Generating preview...",
+                                text = "Generowanie podglądu...",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -188,8 +188,8 @@ fun SaveDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Route Name") },
-                    placeholder = { Text("e.g. My First V5, Dyno Project") },
+                    label = { Text("Nazwa drogi") },
+                    placeholder = { Text("np. Mój pierwszy projekt, Dyno") },
                     singleLine = true,
                     enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
@@ -215,18 +215,18 @@ fun SaveDialog(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Warning,
-                            contentDescription = "Warning",
+                            contentDescription = "Ostrzeżenie",
                             tint = warningContentColor
                         )
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "A boulder with this name already exists.",
+                                text = "Droga o tej nazwie już istnieje.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.SemiBold,
                                 color = warningContentColor
                             )
                             Text(
-                                text = "Saving will override the existing boulder.",
+                                text = "Zapisanie nadpisze istniejący boulder.",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = warningContentColor.copy(alpha = 0.8f)
                             )
@@ -247,7 +247,7 @@ fun SaveDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Cancel")
+                        Text("Anuluj")
                     }
 
                     Button(
@@ -285,7 +285,7 @@ fun SaveDialog(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(if (hasDuplicateName) "Overwrite" else "Save")
+                            Text(if (hasDuplicateName) "Nadpisz" else "Zapisz")
                         }
                     }
                 }

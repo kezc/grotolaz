@@ -59,7 +59,7 @@ fun ProblemsListDialog(
             problems
         } else {
             problems.filter { problem ->
-                val displayName = if (problem.name.toLongOrNull() != null) "Unnamed Route" else problem.name
+                val displayName = if (problem.name.toLongOrNull() != null) "Nienazwana droga" else problem.name
                 displayName.contains(searchQuery, ignoreCase = true) ||
                         problem.version.contains(searchQuery, ignoreCase = true)
             }
@@ -70,11 +70,11 @@ fun ProblemsListDialog(
         val nowSeconds = Clock.System.now().epochSeconds
         val diffSeconds = nowSeconds - epochSeconds
         return when {
-            diffSeconds < 0 -> "Just now"
-            diffSeconds < 60 -> "Just now"
-            diffSeconds < 3600 -> "${diffSeconds / 60}m ago"
-            diffSeconds < 86400 -> "${diffSeconds / 3600}h ago"
-            else -> "${diffSeconds / 86400}d ago"
+            diffSeconds < 0 -> "Przed chwilą"
+            diffSeconds < 60 -> "Przed chwilą"
+            diffSeconds < 3600 -> "${diffSeconds / 60} min temu"
+            diffSeconds < 86400 -> "${diffSeconds / 3600} godz. temu"
+            else -> "${diffSeconds / 86400} dni temu"
         }
     }
 
@@ -115,7 +115,7 @@ fun ProblemsListDialog(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "Saved Routes",
+                        text = "Zapisane drogi",
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
@@ -123,7 +123,7 @@ fun ProblemsListDialog(
                     IconButton(onClick = onDialogDismiss) {
                         Icon(
                             imageVector = Icons.Default.Close,
-                            contentDescription = "Close",
+                            contentDescription = "Zamknij",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -144,20 +144,20 @@ fun ProblemsListDialog(
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.List,
-                            contentDescription = "No saved routes",
+                            contentDescription = "Brak zapisanych dróg",
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                             modifier = Modifier.size(64.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "No saved routes yet",
+                            text = "Brak zapisanych dróg",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Select holds on the climbing wall and save them to build your custom routes library.",
+                            text = "Zaznacz chwyty na ściance i zapisz je, aby zbudować swoją własną bibliotekę dróg.",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -169,11 +169,11 @@ fun ProblemsListDialog(
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search routes...") },
+                        placeholder = { Text("Szukaj dróg...") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "Search"
+                                contentDescription = "Szukaj"
                             )
                         },
                         trailingIcon = {
@@ -181,7 +181,7 @@ fun ProblemsListDialog(
                                 IconButton(onClick = { searchQuery = "" }) {
                                     Icon(
                                         imageVector = Icons.Default.Close,
-                                        contentDescription = "Clear Search"
+                                        contentDescription = "Wyczyść wyszukiwanie"
                                     )
                                 }
                             }
@@ -208,20 +208,20 @@ fun ProblemsListDialog(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Search,
-                                contentDescription = "No matches",
+                                contentDescription = "Brak dopasowań",
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                                 modifier = Modifier.size(64.dp)
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                text = "No matching routes",
+                                text = "Brak pasujących dróg",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "We couldn't find any saved routes matching \"$searchQuery\".",
+                                text = "Nie znaleziono zapisanych dróg pasujących do „$searchQuery”.",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -240,7 +240,7 @@ fun ProblemsListDialog(
                             }
                             val displayName = remember(problem.name) {
                                 val epoch = problem.name.toLongOrNull()
-                                if (epoch != null) "Unnamed Route" else problem.name
+                                if (epoch != null) "Nienazwana droga" else problem.name
                             }
 
                             Card(
@@ -278,14 +278,14 @@ fun ProblemsListDialog(
                                         if (bitmap != null) {
                                             Image(
                                                 bitmap = bitmap,
-                                                contentDescription = "Thumbnail",
+                                                contentDescription = "Miniaturka",
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier.fillMaxSize()
                                             )
                                         } else {
                                             Icon(
                                                 imageVector = Icons.AutoMirrored.Filled.List,
-                                                contentDescription = "No Preview",
+                                                contentDescription = "Brak podglądu",
                                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
@@ -305,7 +305,7 @@ fun ProblemsListDialog(
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "Holds: ${problem.holdsIds.size} • Wall: ${problem.version}",
+                                            text = "Chwyty: ${problem.holdsIds.size} • Ścianka: ${problem.version}",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -327,7 +327,7 @@ fun ProblemsListDialog(
                                                     val shareUrl = "$baseUrl#v=${problem.version}&holds=${problem.holdsIds.sorted().joinToString(",")}"
                                                     window.navigator.clipboard.writeText(shareUrl)
                                                     snackbarHostState.showSnackbar(
-                                                        message = "URL for \"$displayName\" copied to clipboard",
+                                                        message = "Skopiowano link do drogi „$displayName” do schowka",
                                                         duration = SnackbarDuration.Short
                                                     )
                                                 } catch (e: Exception) {
@@ -338,7 +338,7 @@ fun ProblemsListDialog(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Share,
-                                            contentDescription = "Share Route",
+                                            contentDescription = "Udostępnij drogę",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
                                     }
@@ -353,14 +353,14 @@ fun ProblemsListDialog(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Delete,
-                                            contentDescription = "Delete Route",
+                                            contentDescription = "Usuń drogę",
                                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                                         )
                                     }
 
                                     Icon(
                                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = "Load Route",
+                                        contentDescription = "Wczytaj drogę",
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                         modifier = Modifier.padding(end = 4.dp)
                                     )

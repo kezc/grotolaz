@@ -146,8 +146,14 @@ private fun ClimbingWallContent(
 
 @Composable
 private fun BoxScope.SelectionCounter(selectedHoldIds: Set<Int>) {
+    val count = selectedHoldIds.size
+    val text = when {
+        count == 1 -> "1 chwyt"
+        count % 10 in 2..4 && (count % 100 !in 12..14) -> "$count chwyty"
+        else -> "$count chwytów"
+    }
     Text(
-        text = "${selectedHoldIds.size} chwytów", // TODO string resources
+        text = text,
         style = MaterialTheme.typography.titleMedium,
         modifier = Modifier
             .padding(16.dp)

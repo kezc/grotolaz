@@ -76,7 +76,7 @@ fun BoxScope.FloatingControls(
         FloatingIconButton(
             onClick = zoomCallbacks.onZoomIn,
             imageVector = Icons.Default.Add,
-            contentDescription = "Zoom In",
+            contentDescription = "Przybliż",
             containerColor = MaterialTheme.colorScheme.primary
         )
 
@@ -84,7 +84,7 @@ fun BoxScope.FloatingControls(
         FloatingIconButton(
             onClick = zoomCallbacks.onZoomOut,
             imageVector = Icons.Default.Remove,
-            contentDescription = "Zoom Out",
+            contentDescription = "Oddal",
             containerColor = MaterialTheme.colorScheme.primary
         )
 
@@ -97,7 +97,7 @@ fun BoxScope.FloatingControls(
             } else {
                 MaterialTheme.colorScheme.secondary
             },
-            contentDescription = if (isLocked) "Locked" else "Unlocked"
+            contentDescription = if (isLocked) "Zablokowane" else "Odblokowane"
         )
 
         // More options button with popup menu
@@ -106,7 +106,7 @@ fun BoxScope.FloatingControls(
                 onClick = { showMenu = true },
                 containerColor = MaterialTheme.colorScheme.secondary,
                 imageVector = Icons.Default.MoreVert,
-                contentDescription = "More Options"
+                contentDescription = "Więcej opcji"
             )
 
             DropdownMenu(
@@ -126,7 +126,7 @@ fun BoxScope.FloatingControls(
                                 enabled = !showEmptyWall
                             )
                             Text(
-                                text = "Darken Non-Selected",
+                                text = "Przyciemnij niewybrane",
                                 color = if (showEmptyWall) {
                                     MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                 } else {
@@ -153,7 +153,7 @@ fun BoxScope.FloatingControls(
                                 checked = showEmptyWall,
                                 onCheckedChange = null
                             )
-                            Text("Show Selected Only")
+                            Text("Pokaż tylko wybrane")
                         }
                     },
                     onClick = {
@@ -173,7 +173,7 @@ fun BoxScope.FloatingControls(
                                 enabled = darkenNonSelected || showEmptyWall
                             )
                             Text(
-                                text = "Show Borders",
+                                text = "Pokaż obramowania",
                                 color = if (darkenNonSelected || showEmptyWall) {
                                     MaterialTheme.colorScheme.onSurface
                                 } else {
@@ -200,9 +200,9 @@ fun BoxScope.FloatingControls(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Share,
-                                contentDescription = "Share"
+                                contentDescription = "Udostępnij"
                             )
-                            Text("Share URL")
+                            Text("Udostępnij link")
                         }
                     },
                     onClick = {
@@ -212,7 +212,7 @@ fun BoxScope.FloatingControls(
                             try {
                                 window.navigator.clipboard.writeText(window.location.href)
                                 snackbarHostState.showSnackbar(
-                                    message = "URL copied to clipboard",
+                                    message = "Skopiowano link do schowka",
                                     duration = SnackbarDuration.Short
                                 )
                             } catch (e: Exception) {
@@ -231,9 +231,9 @@ fun BoxScope.FloatingControls(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Save,
-                                contentDescription = "Save"
+                                contentDescription = "Zapisz"
                             )
-                            Text("Save boulder")
+                            Text("Zapisz boulder")
                         }
                     },
                     onClick = {
@@ -263,7 +263,7 @@ fun BoxScope.FloatingControls(
                                 imageVector = Icons.Default.List,
                                 contentDescription = null
                             )
-                            Text("Show boulders")
+                            Text("Pokaż bouldery")
                         }
                     },
                     onClick = {

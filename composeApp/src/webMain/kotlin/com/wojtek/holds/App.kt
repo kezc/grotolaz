@@ -212,7 +212,7 @@ internal fun App(
                 }
             )
         }
-        composable<Patient> { Text("Patient screen") }
+        composable<Patient> { Text("Ekran pacjenta") }
 
         // 3. The test composable
         composable<WallRoute> { backStackEntry ->

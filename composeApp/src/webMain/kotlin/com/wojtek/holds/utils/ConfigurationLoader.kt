@@ -36,7 +36,7 @@ suspend fun loadHoldConfiguration(
         val config = Json.decodeFromString<HoldConfiguration>(configText)
         ConfigurationLoadResult.Success(config)
     } catch (e: Exception) {
-        ConfigurationLoadResult.Error("Failed to load holds configuration for version '$version': ${e.message}")
+        ConfigurationLoadResult.Error("Nie udało się wczytać konfiguracji chwytów dla wersji '$version': ${e.message}")
     }
 }
 
