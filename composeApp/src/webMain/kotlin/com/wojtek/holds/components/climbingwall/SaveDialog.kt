@@ -1,12 +1,15 @@
 package com.wojtek.holds.components.climbingwall
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +29,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.time.Clock
 
 @Composable
 fun SaveDialog(
@@ -94,6 +98,22 @@ fun SaveDialog(
                 val coroutineScope = rememberCoroutineScope()
                 val imageDeferred = remember { coroutineScope.async { getImage() } }
                 val image: ImageBitmap? by produceState(null) { value = imageDeferred.await() }
+
+                var existingProblem by remember { mutableStateOf<Problem?>(null) }
+                val trimmedName = name.trim()
+                LaunchedEffect(trimmedName, problemRepository) {
+                    existingProblem = if (trimmedName.isEmpty()) {
+                        null
+                    } else {
+                        try {
+                            problemRepository.findByName(trimmedName)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            null
+                        }
+                    }
+                }
+                val hasDuplicateName = existingProblem != null
 
                 // Header
                 Row(
@@ -176,6 +196,44 @@ fun SaveDialog(
                     shape = RoundedCornerShape(12.dp)
                 )
 
+                AnimatedVisibility(hasDuplicateName) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    val isDark = isSystemInDarkTheme()
+                    val warningContainerColor = if (isDark) Color(0xFF4F3A00) else Color(0xFFFFF3CD)
+                    val warningContentColor = if (isDark) Color(0xFFFFE082) else Color(0xFF664D03)
+                    val warningBorderColor = if (isDark) Color(0xFF684E00) else Color(0xFFFFECB5)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(warningContainerColor)
+                            .border(1.dp, warningBorderColor, RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Warning",
+                            tint = warningContentColor
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "A boulder with this name already exists.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = warningContentColor
+                            )
+                            Text(
+                                text = "Saving will override the existing boulder.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = warningContentColor.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(28.dp))
 
                 // Action Buttons
@@ -197,7 +255,22 @@ fun SaveDialog(
                             coroutineScope.launch {
                                 isLoading = true
                                 val imagePng = withContext(Dispatchers.Default) { imageDeferred.await().toBase64() }
-                                problemRepository.save(problem.copy(name = name, imageBase64 = imagePng))
+                                val currentExisting = existingProblem
+                                val finalProblem = if (currentExisting != null) {
+                                    problem.copy(
+                                        id = currentExisting.id,
+                                        name = name.trim(),
+                                        createdAt = currentExisting.createdAt,
+                                        updatedAt = Clock.System.now().epochSeconds,
+                                        imageBase64 = imagePng
+                                    )
+                                } else {
+                                    problem.copy(
+                                        name = name.trim(),
+                                        imageBase64 = imagePng
+                                    )
+                                }
+                                problemRepository.save(finalProblem)
                                 onDismissRequest()
                             }
                         },
@@ -212,7 +285,7 @@ fun SaveDialog(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text("Save")
+                            Text(if (hasDuplicateName) "Overwrite" else "Save")
                         }
                     }
                 }

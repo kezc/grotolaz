@@ -43,7 +43,7 @@ fun ProblemsListDialog(
 
     fun refreshProblems() {
         coroutineScope.launch {
-            problems = problemRepository.getAll().sortedByDescending { it.createdAt }
+            problems = problemRepository.getAll().sortedByDescending { it.updatedAt }
         }
     }
 
@@ -308,7 +308,7 @@ fun ProblemsListDialog(
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = formatEpochSeconds(problem.createdAt),
+                                            text = formatEpochSeconds(problem.updatedAt),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary,
                                             fontWeight = FontWeight.Medium

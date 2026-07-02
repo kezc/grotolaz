@@ -23,7 +23,7 @@ internal fun stringifyJsObject(@Suppress("unused") jsObject: JsAny): String =
 class ProblemRepository(coroutineScope: CoroutineScope) {
     private val dbName = "ProblemDatabase"
     private val storeName = "problems"
-    private val dbVersion = 1.0
+    private val dbVersion = 2.0
 
     private val db: Deferred<IDBDatabase> = coroutineScope.async(start = CoroutineStart.LAZY) { _getDatabase() }
 
@@ -32,13 +32,73 @@ class ProblemRepository(coroutineScope: CoroutineScope) {
 
         request.onupgradeneeded = EventHandler {
             val db = request.result
-            if (!db.objectStoreNames.contains(storeName)) {
+            val store = if (!db.objectStoreNames.contains(storeName)) {
                 db.createObjectStore(storeName)
+            } else {
+                request.transaction!!.objectStore(storeName)
+            }
+            if (!store.indexNames.contains("name")) {
+                store.createIndex("name", "name")
             }
         }
 
         request.onsuccess = EventHandler { cont.resume(request.result) }
         request.onerror = EventHandler { cont.resumeWithException(Exception("Failed to open IndexedDB")) }
+    }
+
+    suspend fun findByName(name: String): Problem? {
+        val db = db.await()
+        return suspendCancellableCoroutine { cont ->
+            val transaction = db.transaction(storeName, IDBTransactionMode.readonly)
+            val store = transaction.objectStore(storeName)
+            
+            if (!store.indexNames.contains("name")) {
+                cont.resume(null)
+                return@suspendCancellableCoroutine
+            }
+            
+            val index = store.index("name")
+            val request = index.get(IDBValidKey(name))
+
+            request.onsuccess = EventHandler {
+                val resultObj = request.result
+                if (resultObj != null) {
+                    try {
+                        cont.resume(resultObj.decode())
+                    } catch (e: Exception) {
+                        cont.resumeWithException(Exception("Failed to deserialize problem", e))
+                    }
+                } else {
+                    cont.resume(null)
+                }
+            }
+            request.onerror = EventHandler {
+                cont.resumeWithException(Exception("Failed to fetch problem by name"))
+            }
+        }
+    }
+
+    suspend fun existsByName(name: String): Boolean {
+        val db = db.await()
+        return suspendCancellableCoroutine { cont ->
+            val transaction = db.transaction(storeName, IDBTransactionMode.readonly)
+            val store = transaction.objectStore(storeName)
+            
+            if (!store.indexNames.contains("name")) {
+                cont.resume(false)
+                return@suspendCancellableCoroutine
+            }
+            
+            val index = store.index("name")
+            val request = index.get(IDBValidKey(name))
+
+            request.onsuccess = EventHandler {
+                cont.resume(request.result != null)
+            }
+            request.onerror = EventHandler {
+                cont.resume(false)
+            }
+        }
     }
 
     suspend fun save(problem: Problem) {
@@ -79,31 +139,6 @@ class ProblemRepository(coroutineScope: CoroutineScope) {
             request.onerror = EventHandler { cont.resumeWithException(Exception("Failed to fetch problem")) }
         }
     }
-
-    suspend fun getById(id: Int): Problem? {
-        val db = db.await()
-
-        return suspendCancellableCoroutine { cont ->
-            val transaction = db.transaction(storeName, IDBTransactionMode.readonly)
-            val store = transaction.objectStore(storeName)
-            val request = store.get(IDBValidKey(id))
-
-            request.onsuccess = EventHandler {
-                val resultObj = request.result
-                if (resultObj != null) {
-                    try {
-                        cont.resume(resultObj.decode())
-                    } catch (e: Exception) {
-                        cont.resumeWithException(Exception("Failed to deserialize problem", e))
-                    }
-                } else {
-                    cont.resume(null)
-                }
-            }
-            request.onerror = EventHandler { cont.resumeWithException(Exception("Failed to fetch problem")) }
-        }
-    }
-
     suspend fun delete(id: Int) {
         val db = db.await()
 
