@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import kotlinx.browser.window
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,6 +44,7 @@ fun ProblemsListDialog(
     var searchQuery by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    var problemToDelete by remember { mutableStateOf<Problem?>(null) }
 
     fun refreshProblems() {
         coroutineScope.launch {
@@ -345,10 +347,7 @@ fun ProblemsListDialog(
 
                                     IconButton(
                                         onClick = {
-                                            coroutineScope.launch {
-                                                problemRepository.delete(problem.id)
-                                                refreshProblems()
-                                            }
+                                            problemToDelete = problem
                                         }
                                     ) {
                                         Icon(
@@ -366,6 +365,91 @@ fun ProblemsListDialog(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (problemToDelete != null) {
+        val problem = problemToDelete!!
+        val displayName = if (problem.name.toLongOrNull() != null) "Nienazwana droga" else problem.name
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(
+                    enabled = true,
+                    onClick = { problemToDelete = null }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .widthIn(max = 420.dp)
+                    .fillMaxWidth()
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(
+                        text = "Usuń drogę",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Czy na pewno chcesz usunąć drogę „$displayName”? Tej operacji nie można cofnąć.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+                    ) {
+                        OutlinedButton(
+                            onClick = { problemToDelete = null },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Anuluj")
+                        }
+
+                        Button(
+                            onClick = {
+                                val id = problem.id
+                                problemToDelete = null
+                                coroutineScope.launch {
+                                    problemRepository.delete(id)
+                                    refreshProblems()
+                                    snackbarHostState.showSnackbar(
+                                        message = "Usunięto drogę „$displayName”",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Usuń")
                         }
                     }
                 }
