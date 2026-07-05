@@ -690,7 +690,7 @@ private suspend fun PointerInputScope.detectTransformAndTapGestures(
         var zoom = 1f
         var pan = Offset.Zero
         var pastTouchSlop = false
-        val touchSlop = viewConfiguration.touchSlop
+        val slop = 5f // Tight 5px threshold to separate clicks from drags
         var lockedToPanOrZoom = false
         
         var isTapCandidate = true
@@ -719,16 +719,16 @@ private suspend fun PointerInputScope.detectTransformAndTapGestures(
                     val rotationMotion = kotlin.math.abs(rotation) * 100f 
                     val panMotion = pan.getDistance()
 
-                    if (panMotion > touchSlop) {
+                    if (panMotion > slop) {
                         isTapCandidate = false
                     }
 
-                    if (zoomMotion > touchSlop ||
-                        rotationMotion > touchSlop ||
-                        panMotion > touchSlop
+                    if (zoomMotion > slop ||
+                        rotationMotion > slop ||
+                        panMotion > slop
                     ) {
                         pastTouchSlop = true
-                        lockedToPanOrZoom = panZoomLock && (zoomMotion > touchSlop || rotationMotion > touchSlop)
+                        lockedToPanOrZoom = panZoomLock && (zoomMotion > slop || rotationMotion > slop)
                     }
                 }
 
