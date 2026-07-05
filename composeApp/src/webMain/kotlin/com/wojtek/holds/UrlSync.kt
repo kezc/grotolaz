@@ -8,7 +8,7 @@ private const val HOLDS_PARAM = "holds"
 object SilentUrlUpdater {
     fun updateHoldsInUrl(holdIds: Set<Int>, version: String) {
         val hash = if (holdIds.isEmpty()) {
-            ""
+            "#$VERSION_PARAM=$version"
         } else {
             "#$VERSION_PARAM=$version&$HOLDS_PARAM=${holdIds.sorted().joinToString(",")}"
         }
