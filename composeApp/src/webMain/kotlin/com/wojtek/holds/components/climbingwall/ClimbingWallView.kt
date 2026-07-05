@@ -84,7 +84,7 @@ fun ClimbingWallView(
     selectedAlpha: Float = 0.5f,
     unselectedAlpha: Float = 0.3f,
     minZoom: Float = 1f,
-    maxZoom: Float = 5f,
+    maxZoom: Float = 7.5f,
     zoomStep: Float = 1.2f,
     emptyWallImagePainter: Painter? = null,
     problemsRepository: ProblemRepository,
