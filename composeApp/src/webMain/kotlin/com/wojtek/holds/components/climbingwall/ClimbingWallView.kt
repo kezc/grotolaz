@@ -125,26 +125,9 @@ fun ClimbingWallView(
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
-                    awaitPointerEventScope {
-                        while (true) {
-                            val event = awaitPointerEvent()
-                            val numPointers = event.changes.size
-                            val downs = event.changes.count { !it.previousPressed && it.pressed }
-                            val ups = event.changes.count { it.previousPressed && !it.pressed }
-                            val consumed = event.changes.count { it.isConsumed }
-                            val moved = event.changes.count { it.previousPosition != it.position }
-                            println("[ClimbingWallView RAW] type=${event.type}, totalPointers=$numPointers, downs=$downs, ups=$ups, moved=$moved, consumed=$consumed")
-                            event.changes.forEachIndexed { index, change ->
-                                println("  -> Pointer[$index]: id=${change.id}, pressed=${change.pressed}, prevPressed=${change.previousPressed}, position=${change.position}, isConsumed=${change.isConsumed}")
-                            }
-                        }
-                    }
-                }
-                .pointerInput(Unit) {
                     detectTransformAndTapGestures(
                         panZoomLock = false,
                         onTap = { tapOffset ->
-                            println("[ClimbingWallView TAP] Tap detected at offset: $tapOffset (isLocked=${state.isLocked})")
                             if (!state.isLocked) {
                                 // Convert tapOffset from unscaled/unpanned screen space to the local scaled/panned space of the holds
                                 val centerX = size.width / 2f
@@ -153,27 +136,23 @@ fun ClimbingWallView(
                                     x = (tapOffset.x - centerX) / state.scale + centerX - state.offsetX,
                                     y = (tapOffset.y - centerY) / state.scale + centerY - state.offsetY
                                 )
-                                println("[ClimbingWallView TAP] Converted localOffset: $localTapOffset")
 
                                 val hold = findClickedHold(
                                     tapOffset = localTapOffset,
                                     holds = currentConfiguration.holds,
                                     displayParams = currentDisplayParams
                                 )
-                                println("[ClimbingWallView TAP] Clicked hold: ${hold?.id ?: "None"}")
                                 hold?.let { state.toggleHold(it.id) }
                             }
                         },
                         onGesture = { centroid, pan, zoom, rotation ->
                             val oldScale = state.scale
-                            println("[ClimbingWallView GESTURE] detectTransformGestures triggered: centroid=$centroid, pan=$pan, zoom=$zoom, rotation=$rotation, currentScale=$oldScale")
 
                             // Apply zoom with constraints
                             state.scale = (state.scale * zoom).coerceIn(minZoom, maxZoom)
 
                             // Calculate zoom factor applied
                             val zoomFactor = state.scale / oldScale
-                            println("[ClimbingWallView GESTURE] calculated zoomFactor=$zoomFactor, newScale=${state.scale}")
 
                             // Handle zoom transformation
                             if (zoomFactor != 1f) {
@@ -188,22 +167,17 @@ fun ClimbingWallView(
                                 val localDeltaY = deltaY / oldScale
                                 state.offsetX = state.offsetX - localDeltaX * (1f - 1f / zoomFactor)
                                 state.offsetY = state.offsetY - localDeltaY * (1f - 1f / zoomFactor)
-                                println("[ClimbingWallView GESTURE] zoom apply offset: localDelta=($localDeltaX, $localDeltaY), newOffset=(${state.offsetX}, ${state.offsetY})")
                             } else {
                                 // Only apply pan when not zooming (pure drag gesture)
                                 // We divide by state.scale because the offset modifier is placed after the graphicsLayer scale modifier
-                                val oldOffsetX = state.offsetX
-                                val oldOffsetY = state.offsetY
                                 state.offsetX += pan.x / state.scale
                                 state.offsetY += pan.y / state.scale
-                                println("[ClimbingWallView GESTURE] pan apply offset: oldOffset=($oldOffsetX, $oldOffsetY), newOffset=(${state.offsetX}, ${state.offsetY})")
                             }
 
                             // Reset pan when at minimum zoom
                             if (state.scale <= minZoom) {
                                 state.offsetX = 0f
                                 state.offsetY = 0f
-                                println("[ClimbingWallView GESTURE] scale <= minZoom: reset offset to (0, 0)")
                             }
                         }
                     )
