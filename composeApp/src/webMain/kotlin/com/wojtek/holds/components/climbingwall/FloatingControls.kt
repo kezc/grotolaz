@@ -1,8 +1,13 @@
 package com.wojtek.holds.components.climbingwall
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
@@ -16,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.database.Problem
@@ -59,9 +65,11 @@ fun BoxScope.FloatingControls(
     selectedHoldsId: Set<Int>,
     showSaveDialog: (Problem) -> Unit,
     modifier: Modifier = Modifier,
-    showProblemsDialog: () -> Unit
+    showProblemsDialog: () -> Unit,
+    onClearSelectedHolds: () -> Unit
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showClearConfirmDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -272,6 +280,30 @@ fun BoxScope.FloatingControls(
                     }
                 )
 
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Wyczyść",
+                                tint = if (selectedHoldsId.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                            Text(
+                                text = "Wyczyść",
+                                color = if (selectedHoldsId.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+                    },
+                    onClick = {
+                        showMenu = false
+                        showClearConfirmDialog = true
+                    },
+                    enabled = selectedHoldsId.isNotEmpty()
+                )
+
             }
         }
     }
@@ -283,6 +315,80 @@ fun BoxScope.FloatingControls(
             .align(Alignment.BottomCenter)
             .padding(bottom = 80.dp)
     )
+
+    if (showClearConfirmDialog) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.5f))
+                .clickable(
+                    enabled = true,
+                    onClick = { showClearConfirmDialog = false }
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Card(
+                modifier = Modifier
+                    .padding(32.dp)
+                    .widthIn(max = 420.dp)
+                    .fillMaxWidth()
+                    .clickable(enabled = false) {},
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp)
+                ) {
+                    Text(
+                        text = "Wyczyść zaznaczenie",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Czy na pewno chcesz odznaczyć wszystkie wybrane chwyty?",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.End)
+                    ) {
+                        OutlinedButton(
+                            onClick = { showClearConfirmDialog = false },
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Anuluj")
+                        }
+
+                        Button(
+                            onClick = {
+                                showClearConfirmDialog = false
+                                onClearSelectedHolds()
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = MaterialTheme.colorScheme.onError
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("Wyczyść")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable

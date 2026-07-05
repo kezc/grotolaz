@@ -75,6 +75,10 @@ class ClimbingWallState(private val scope: CoroutineScope) {
         }
     }
 
+    fun clearSelectedHolds() {
+        selectedHoldIds = emptySet()
+    }
+
     fun toggleLock() {
         isLocked = !isLocked
     }

@@ -339,6 +339,7 @@ fun ClimbingWallView(
                 selectedHoldsId = state.selectedHoldIds,
                 showSaveDialog = showSaveDialog,
                 showProblemsDialog = showProblemsDialog,
+                onClearSelectedHolds = { state.clearSelectedHolds() }
             )
         }
     }
