@@ -83,6 +83,7 @@ fun ProblemsListDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(

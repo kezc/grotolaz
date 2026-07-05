@@ -4,6 +4,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -66,6 +68,7 @@ fun SaveDialog(
     Box(
         modifier = Modifier
             .fillMaxSize()
+            .imePadding()
             .background(
                 Brush.verticalGradient(
                     colors = listOf(
@@ -90,7 +93,8 @@ fun SaveDialog(
             Column(
                 modifier = Modifier
                     .padding(28.dp)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 var name by remember { mutableStateOf("") }
