@@ -28,7 +28,7 @@ fun generateRouteImageBitmap(
     backgroundDarkeningAlpha: Float = 0.5f,
     showBorders: Boolean = true,
     borderColor: Color = Color.Green,
-    maxDimension: Int = 256 // <-- New parameter for bounding box
+    maxDimension: Int = 384
 ): ImageBitmap {
     val originalWidth = configuration.imageWidth.toFloat()
     val originalHeight = configuration.imageHeight.toFloat()

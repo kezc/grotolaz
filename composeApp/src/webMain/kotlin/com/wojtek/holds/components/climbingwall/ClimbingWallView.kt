@@ -28,6 +28,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.dp
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.model.Hold
@@ -254,7 +255,7 @@ fun ClimbingWallView(
                                     hold = hold,
                                     displayParams = displayParams,
                                     borderColor = selectedColor,
-                                    strokeWidth = 2f
+                                    strokeWidth = 1f
                                 )
                             }
                         }
