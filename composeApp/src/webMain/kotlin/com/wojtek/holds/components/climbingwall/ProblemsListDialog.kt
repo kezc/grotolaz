@@ -244,7 +244,7 @@ fun ProblemsListDialog(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                                modifier = Modifier.padding(horizontal = 32.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp)
                             )
                         }
                     } else {
@@ -284,7 +284,7 @@ fun ProblemsListDialog(
                                     // Thumbnail Preview
                                     Box(
                                         modifier = Modifier
-                                            .size(72.dp)
+                                            .height(72.dp)
                                             .clip(RoundedCornerShape(12.dp))
                                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                                             .border(
@@ -298,8 +298,8 @@ fun ProblemsListDialog(
                                             Image(
                                                 bitmap = bitmap,
                                                 contentDescription = "Miniaturka",
-                                                contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
+                                                contentScale = ContentScale.Fit,
+                                                modifier = Modifier.fillMaxHeight()
                                             )
                                         } else {
                                             Icon(
@@ -405,7 +405,7 @@ fun ProblemsListDialog(
         ) {
             Card(
                 modifier = Modifier
-                    .padding(32.dp)
+                    .padding(16.dp)
                     .widthIn(max = 420.dp)
                     .fillMaxWidth()
                     .clickable(enabled = false) {},
