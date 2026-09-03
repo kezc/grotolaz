@@ -49,8 +49,8 @@ class ClimbingWallState(private val scope: CoroutineScope) {
             val configResult = loadHoldConfiguration(version)
             if (configResult is ConfigurationLoadResult.Success) {
                 val config = configResult.configuration
-                val wall = loadVersionedImage(version, "wall.png")
-                val empty = loadVersionedImage(version, "empty.png")
+                val wall = loadVersionedImage(version, "wall.webp")
+                val empty = loadVersionedImage(version, "empty.webp")
                 if (wall != null && empty != null) {
                     configuration = config
                     wallPainter = wall
