@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>compose-wasmjs-pwa — the bundle</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --fg: #1d3557;
+    --muted: #5a6b7d;
+    --bg: #ffffff;
+    --card: #f7f9fb;
+    --rule: #dde4ea;
+    --link: #457b9d;
+    --accent: #e63946;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fg: #e8edf2; --muted: #9fb0c0; --bg: #12171c;
+      --card: #1a2129; --rule: #2b3540; --link: #8ab4d0; --accent: #f07782;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0 auto; padding: 2.5rem 1.25rem 4rem; max-width: 52rem;
+    background: var(--bg); color: var(--fg);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  h1 { font-size: 1.7rem; margin: 0 0 .25rem; line-height: 1.25; }
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 .75rem; padding-bottom: .3rem; border-bottom: 1px solid var(--rule); }
+  .sub { color: var(--muted); margin: 0 0 2rem; }
+  a { color: var(--link); }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .9em; }
+  .note {
+    background: var(--card); border-left: 3px solid var(--accent);
+    padding: .9rem 1.1rem; margin: 1.5rem 0; border-radius: 0 4px 4px 0;
+  }
+  .note p { margin: .4rem 0; }
+  .note p:first-child { margin-top: 0; }
+  .note p:last-child { margin-bottom: 0; }
+  table { border-collapse: collapse; width: 100%; margin: .5rem 0 1rem; }
+  td { padding: .45rem .6rem .45rem 0; vertical-align: top; border-bottom: 1px solid var(--rule); }
+  td:first-child { white-space: nowrap; width: 1%; padding-right: 1.2rem; }
+  td code { color: var(--fg); }
+  ul { padding-left: 1.2rem; }
+  li { margin: .3rem 0; }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .9rem; }
+  @media (max-width: 34rem) {
+    td { display: block; border: 0; padding: 0; }
+    td:first-child { width: auto; padding-top: .8rem; font-weight: 600; }
+    tr { display: block; border-bottom: 1px solid var(--rule); padding-bottom: .6rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>compose-wasmjs-pwa</h1>
+<p class="sub">
+  Turning a Compose Multiplatform <code>wasmJs</code> app into a PWA with
+  deliberate software updates and a correctly separated data cache — the files,
+  ready to copy.
+</p>
+
+<p>
+  This is the companion bundle to the article
+  <a href="../blog-pwa-updates-and-caching.html">Shipping a Kotlin Compose
+  Multiplatform app as a PWA</a>. The article argues the <em>why</em>; these are
+  the files that implement it.
+</p>
+
+<div class="note">
+  <p><strong>You do not need Claude Code to use this.</strong></p>
+  <p>
+    It is packaged as a skill for <a href="https://claude.com/claude-code">Claude
+    Code</a>, because that is how it was built and applied to a real production
+    app. Ignore that framing and what remains is a folder of plain files with
+    <code>{{PLACEHOLDER}}</code> markers, plus prose you can read straight
+    through: <a href="SKILL.md">SKILL.md</a> works as an ordinary step-by-step
+    guide.
+  </p>
+  <p>
+    If you <em>do</em> use Claude Code, drop this folder into
+    <code>.claude/skills/</code> and it will run the conversion, ask which update
+    notification you want, and audit an existing data layer against the checks in
+    Phase&nbsp;B.
+  </p>
+</div>
+
+<h2>Start here</h2>
+<table>
+  <tr><td><a href="SKILL.md">SKILL.md</a></td>
+      <td>The procedure, end to end: retiring an older service worker, precaching, the startup gate, the update notification, then the data-layer audit and the server headers.</td></tr>
+  <tr><td><a href="references/how-it-works.md">references/<wbr>how-it-works.md</a></td>
+      <td>Why the update flow is built the way it is — the startup gate, why intent is captured at <code>updatefound</code>, and how to reach clients stuck behind an old cache-first worker.</td></tr>
+  <tr><td><a href="references/data-and-deployment.md">references/<wbr>data-and-deployment.md</a></td>
+      <td>The caching model, offline behaviour, the server cache headers, and the verification checklist.</td></tr>
+  <tr><td><a href="references/notification-styles.md">references/<wbr>notification-styles.md</a></td>
+      <td>The four update-notification styles and their trade-offs, plus how a server-driven minimum-version gate differs from all of them.</td></tr>
+</table>
+
+<h2>Web assets</h2>
+<table>
+  <tr><td><a href="assets/web/registerServiceWorker.js">registerServiceWorker.js</a></td>
+      <td>Registration, the startup gate that stops the old version flashing up, and the deferred-activation logic behind the “New Software” affordance.</td></tr>
+  <tr><td><a href="assets/web/workbox-config-for-wasm.js">workbox-config-for-wasm.js</a></td>
+      <td>Precaches the software and nothing else — deliberately no <code>runtimeCaching</code>.</td></tr>
+  <tr><td><a href="assets/web/legacy-sw-tombstone.js">legacy-sw-tombstone.js</a></td>
+      <td>Retires a previously deployed hand-written worker, including clients that can no longer load your new page.</td></tr>
+  <tr><td><a href="assets/web/index.html">index.html</a> · <a href="assets/web/manifest.json">manifest.json</a></td>
+      <td>Page shell with the splash element, and the web app manifest.</td></tr>
+</table>
+
+<h2>Kotlin assets</h2>
+<table>
+  <tr><td><code>PwaUpdate.*.kt</code></td>
+      <td>The <code>expect</code>/<code>actual</code> bridge between the service worker and Compose — <a href="assets/kotlin/PwaUpdate.common.kt">common</a>, <a href="assets/kotlin/PwaUpdate.wasmJs.kt">wasmJs</a>, <a href="assets/kotlin/PwaUpdate.noop.kt">no-op</a> for other targets.</td></tr>
+  <tr><td><a href="assets/kotlin/app-update-ui.kt">app-update-ui.kt</a></td>
+      <td>The pulsating button and confirm dialog.</td></tr>
+  <tr><td><a href="assets/kotlin/offline-indicator.kt">offline-indicator.kt</a></td>
+      <td>Data-status indicator variants; pick one and delete the rest.</td></tr>
+  <tr><td><code>Store.*.kt</code></td>
+      <td>An app-owned data cache for projects that have none — <a href="assets/kotlin/Store.common.kt">common</a>, <a href="assets/kotlin/Store.wasmJs.kt">wasmJs</a> (Cache API), <a href="assets/kotlin/Store.jvm.kt">jvm</a> (files), <a href="assets/kotlin/Store.memory.kt">memory</a>. Most apps should keep what they already have.</td></tr>
+  <tr><td><a href="assets/kotlin/data-poll-template.kt">data-poll-template.kt</a></td>
+      <td>The conditional-GET request shape, worth reading even if you keep your own layer.</td></tr>
+  <tr><td><a href="assets/kotlin/wasmJs-main.kt">wasmJs-main.kt</a></td>
+      <td>The <code>main()</code> that awaits the startup gate before mounting Compose.</td></tr>
+</table>
+
+<h2>Build wiring</h2>
+<table>
+  <tr><td><a href="assets/gradle/gradle-wiring.md">gradle-wiring.md</a></td>
+      <td>Version-catalog entries and the plugin to apply.</td></tr>
+  <tr><td><a href="scripts/latest_version.sh">scripts/latest_version.sh</a></td>
+      <td>Resolves the newest published version of a plugin or artifact, so nothing is hardcoded.</td></tr>
+</table>
+
+<div class="note">
+  <p>
+    <strong>Validated 2026-07-25</strong> against Kotlin 2.4.10, Compose
+    Multiplatform 1.11.1, Gradle 9.5.1, Ktor 3.5.1, Workbox 7.4.0 and the
+    ComposePWA plugin 0.7.0-alpha03, by converting a real production app and
+    deploying it.
+  </p>
+  <p>
+    A few claims are pinned to those versions and deserve re-checking if you are
+    far from them: the <code>JsException</code> behaviour of a failed fetch, the
+    <code>cleanupOutdatedCaches</code> predicate, and anything about the plugin,
+    which is a 0.x alpha. <a href="SKILL.md">SKILL.md</a> says which, and why.
+  </p>
+</div>
+
+<footer>
+  Licensed under <a href="LICENSE">Apache-2.0</a>. Copyright 2026 mpMediaSoft GmbH.
+</footer>
+
+</body>
+</html>

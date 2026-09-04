@@ -34,7 +34,7 @@ fi
 
 # Build the Wasm production bundle BEFORE switching branches
 echo "🏗️  Building production bundle..."
-./gradlew :composeApp:wasmJsBrowserDistribution --no-daemon
+./gradlew :composeApp:buildWasmAsPwa --no-daemon
 
 # Check if build was successful
 BUILD_OUTPUT="composeApp/build/dist/wasmJs/productionExecutable"

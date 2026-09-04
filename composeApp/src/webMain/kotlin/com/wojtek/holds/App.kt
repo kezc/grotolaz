@@ -2,12 +2,35 @@
 
 package com.wojtek.holds
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.dp
 import androidx.navigation.ExperimentalBrowserHistoryApi
 import androidx.navigation.NavController
 import androidx.navigation.bindToBrowserNavigation
@@ -51,110 +74,113 @@ fun App() {
         }
     }
 
-    App(climbingWallState) { navController ->
-        val initRoute = window.location.hash.substringAfter('#', "")
-        when {
-            initRoute.startsWith("problems") -> {
-                navController.navigate(ProblemsListRoute)
-            }
-
-            initRoute.startsWith("save") || initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
-                navController.navigate(WallRoute(savedVersion, savedHolds))
-            }
-
-            // 1. Intercept the new Wall Test route
-            initRoute.startsWith("v=") -> {
-                println("Navigating to Wall screen from legacy URL")
-
-                // Reusing your old parsing logic
-                val params = initRoute.split("&").associate { param ->
-                    val parts = param.split("=", limit = 2)
-                    val key = parts.getOrNull(0) ?: ""
-                    val value = parts.getOrNull(1) ?: ""
-                    key to value
-                }
-
-                val version = params["v"] ?: DEFAULT_VERSION
-                val holds = params["holds"] ?: ""
-                
-                val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
-                climbingWallState.selectedHoldIds = holdsSet
-
-                if (version != savedVersion || holds != savedHolds) {
-                    navController.navigate(WallRoute(version, holds))
-                }
-            }
-        }
-
-        val hashChangeListener = EventHandler {
-            // Read the new manually typed hash
-            val manualRoute = window.location.hash.substringAfter('#', "")
-
+    Box(modifier = Modifier.fillMaxSize()) {
+        App(climbingWallState) { navController ->
+            val initRoute = window.location.hash.substringAfter('#', "")
             when {
-                manualRoute.startsWith("problems") -> {
-                    navController.navigate(ProblemsListRoute) {
-                        launchSingleTop = true
-                    }
+                initRoute.startsWith("problems") -> {
+                    navController.navigate(ProblemsListRoute)
                 }
-                manualRoute.startsWith("save") -> {
-                    navController.navigate(WallRoute()) {
-                        launchSingleTop = true
-                    }
+
+                initRoute.startsWith("save") || initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
+                    navController.navigate(WallRoute(savedVersion, savedHolds))
                 }
-                manualRoute.startsWith("v=") -> {
-                    val params = manualRoute.split("&").associate { param ->
+
+                // 1. Intercept the new Wall Test route
+                initRoute.startsWith("v=") -> {
+                    println("Navigating to Wall screen from legacy URL")
+
+                    // Reusing your old parsing logic
+                    val params = initRoute.split("&").associate { param ->
                         val parts = param.split("=", limit = 2)
                         val key = parts.getOrNull(0) ?: ""
                         val value = parts.getOrNull(1) ?: ""
                         key to value
                     }
+
                     val version = params["v"] ?: DEFAULT_VERSION
                     val holds = params["holds"] ?: ""
-
+                    
                     val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
-                    if (climbingWallState.selectedHoldIds != holdsSet) {
-                        climbingWallState.selectedHoldIds = holdsSet
-                    }
+                    climbingWallState.selectedHoldIds = holdsSet
 
-                    // Navigate to the newly typed URL state
-                    navController.navigate(WallRoute(version, holds)) {
-                        // Use singleTop so we don't blow up the backstack
-                        launchSingleTop = true
+                    if (version != savedVersion || holds != savedHolds) {
+                        navController.navigate(WallRoute(version, holds))
                     }
                 }
             }
-        }
 
-        // Using 'hashchange' is often more reliable than 'popstate'
-        // when the user is ONLY modifying the fragment (#) in the address bar
-        val eventType = EventType<Event>("hashchange")
+            val hashChangeListener = EventHandler {
+                // Read the new manually typed hash
+                val manualRoute = window.location.hash.substringAfter('#', "")
 
-        try {
-            window.addEventListener(eventType, hashChangeListener)
-
-            navController.bindToBrowserNavigation { entry ->
-                val route = entry.destination.route.orEmpty()
                 when {
-                    route.startsWith(ProblemsListRoute.serializer().descriptor.serialName) -> "#problems"
-                    route.startsWith(SaveDialog.serializer().descriptor.serialName) -> "#save"
-
-                    // 2. Bind the hash string to the browser URL
-                    route.startsWith(WallRoute.serializer().descriptor.serialName) -> {
-                        val version = entry.toRoute<WallRoute>().version
-                        val holds = climbingWallState.selectedHoldIds.sorted().joinToString(",")
-                        if (holds.isEmpty()) {
-                            "#v=$version"
-                        } else {
-                            "#v=$version&holds=$holds"
+                    manualRoute.startsWith("problems") -> {
+                        navController.navigate(ProblemsListRoute) {
+                            launchSingleTop = true
                         }
                     }
+                    manualRoute.startsWith("save") -> {
+                        navController.navigate(WallRoute()) {
+                            launchSingleTop = true
+                        }
+                    }
+                    manualRoute.startsWith("v=") -> {
+                        val params = manualRoute.split("&").associate { param ->
+                            val parts = param.split("=", limit = 2)
+                            val key = parts.getOrNull(0) ?: ""
+                            val value = parts.getOrNull(1) ?: ""
+                            key to value
+                        }
+                        val version = params["v"] ?: DEFAULT_VERSION
+                        val holds = params["holds"] ?: ""
 
-                    else -> ""
+                        val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
+                        if (climbingWallState.selectedHoldIds != holdsSet) {
+                            climbingWallState.selectedHoldIds = holdsSet
+                        }
+
+                        // Navigate to the newly typed URL state
+                        navController.navigate(WallRoute(version, holds)) {
+                            // Use singleTop so we don't blow up the backstack
+                            launchSingleTop = true
+                        }
+                    }
                 }
             }
-        } finally {
-            window.removeEventListener(eventType, hashChangeListener)
+
+            // Using 'hashchange' is often more reliable than 'popstate'
+            // when the user is ONLY modifying the fragment (#) in the address bar
+            val eventType = EventType<Event>("hashchange")
+
+            try {
+                window.addEventListener(eventType, hashChangeListener)
+
+                navController.bindToBrowserNavigation { entry ->
+                    val route = entry.destination.route.orEmpty()
+                    when {
+                        route.startsWith(ProblemsListRoute.serializer().descriptor.serialName) -> "#problems"
+                        route.startsWith(SaveDialog.serializer().descriptor.serialName) -> "#save"
+
+                        // 2. Bind the hash string to the browser URL
+                        route.startsWith(WallRoute.serializer().descriptor.serialName) -> {
+                            val version = entry.toRoute<WallRoute>().version
+                            val holds = climbingWallState.selectedHoldIds.sorted().joinToString(",")
+                            if (holds.isEmpty()) {
+                                "#v=$version"
+                            } else {
+                                "#v=$version&holds=$holds"
+                            }
+                        }
+
+                        else -> ""
+                    }
+                }
+            } finally {
+                window.removeEventListener(eventType, hashChangeListener)
+            }
         }
+        UpdateAffordance()
     }
 }
 
@@ -256,3 +282,53 @@ internal fun App(
         onNavHostReady(navController)
     }
 }
+
+@Composable
+fun BoxScope.UpdateAffordance() {
+    // Only shown when a new version was detected WHILE the app was running.
+    val updateAvailable = rememberUpdateAvailable()
+    if (!updateAvailable) return
+
+    var showUpdateDialog by remember { mutableStateOf(false) }
+
+    // Pulsate the button to nudge the user into updating sooner rather than later.
+    val pulse = rememberInfiniteTransition(label = "newSoftwarePulse")
+    val scale by pulse.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.18f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 600, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "newSoftwareScale"
+    )
+
+    ElevatedButton(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(16.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale },
+        onClick = { showUpdateDialog = true }
+    ) {
+        Text("New Software")
+    }
+
+    if (showUpdateDialog) {
+        AlertDialog(
+            onDismissRequest = { showUpdateDialog = false },
+            title = { Text("New software available") },
+            text = { Text("A new version of the app is ready. Update now to restart with the latest version.") },
+            dismissButton = {
+                TextButton(onClick = { showUpdateDialog = false }) { Text("Cancel") }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showUpdateDialog = false
+                    PwaUpdate.applyUpdate()
+                }) { Text("Update") }
+            }
+        )
+    }
+}
+

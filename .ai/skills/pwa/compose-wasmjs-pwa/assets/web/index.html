@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="apple-touch-icon" sizes="180x180" href="./apple-touch-icon.png">
+        <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+        <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+        <link rel="manifest" href="./manifest.json">
+        <title>{{APP_NAME}}</title>
+        <style>
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+        </style>
+        <!-- Loaded synchronously in <head> so window.pwaStartupGate exists before
+             the wasm app runs. Do NOT add async/defer here. -->
+        <script type="application/javascript" src="registerServiceWorker.js"></script>
+    </head>
+    <body style="text-align: center; align-content: center">
+    <!-- Startup splash: stays visible until the service worker confirms the
+         running code is the latest version (see registerServiceWorker.js and the
+         wasmJs main). This prevents an old version from flashing up and being
+         replaced a moment later. Removed by the app once it mounts. -->
+    <div id="pwa-splash" style="position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; font-family: system-ui, sans-serif;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 50 50" role="presentation">
+            <circle cx="25" cy="25" r="20" stroke="#ccc" stroke-width="4" fill="none"/>
+            <circle cx="25" cy="25" r="20" stroke="#333" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="90 125">
+                <animateTransform attributeName="transform" type="rotate" from="0 25 25" to="360 25 25" dur="1s" repeatCount="indefinite"/>
+            </circle>
+        </svg>
+        <div style="color: #888; font-size: 14px;">Loading…</div>
+    </div>
+    </body>
+    <!-- The wasm entry point. Its name is <wasmModuleName>.js (usually the module
+         name). Adjust if your module produces a different file. -->
+    <script src="{{WASM_JS_FILE}}"></script>
+</html>
