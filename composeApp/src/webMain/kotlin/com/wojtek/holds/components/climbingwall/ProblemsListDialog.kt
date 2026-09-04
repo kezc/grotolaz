@@ -1,7 +1,6 @@
 package com.wojtek.holds.components.climbingwall
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,7 +37,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.wojtek.holds.database.Problem
 import com.wojtek.holds.database.ProblemRepository
-import com.wojtek.holds.utils.toImageBitmap
+import coil3.compose.AsyncImage
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import kotlin.time.Clock
 import kotlinx.coroutines.launch
 
@@ -254,8 +254,8 @@ fun ProblemsListDialog(
                             verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             items(filteredProblems, key = { it.id }) { problem ->
-                            val bitmap = remember(problem.imageBase64) {
-                                problem.imageBase64?.toImageBitmap()
+                            val dataUri = remember(problem.imageBase64) {
+                                problem.imageBase64?.let { "data:image/png;base64,${it.base64}" }
                             }
                             val displayName = remember(problem.name) {
                                 val epoch = problem.name.toLongOrNull()
@@ -294,12 +294,13 @@ fun ProblemsListDialog(
                                             ),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        if (bitmap != null) {
-                                            Image(
-                                                bitmap = bitmap,
+                                        if (dataUri != null) {
+                                            AsyncImage(
+                                                model = dataUri,
                                                 contentDescription = "Miniaturka",
                                                 contentScale = ContentScale.Fit,
-                                                modifier = Modifier.fillMaxHeight()
+                                                modifier = Modifier.fillMaxHeight(),
+                                                error = rememberVectorPainter(Icons.AutoMirrored.Filled.List)
                                             )
                                         } else {
                                             Icon(
