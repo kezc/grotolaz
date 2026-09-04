@@ -74,6 +74,8 @@ holds/
 - `androidx.lifecycle:lifecycle-viewmodel-compose`: 2.9.6
 - `androidx.lifecycle:lifecycle-runtime-compose`: 2.9.6
 - kotlinx.serialization for JSON parsing
+- `io.coil-kt.coil3:coil-compose`: 3.6.2 (asynchronous image loading and off-main-thread WebWorker decoding)
+- `io.coil-kt.coil3:coil-network-ktor3`: 3.6.2
 - Browser localStorage API for persistence
 
 ### Build System

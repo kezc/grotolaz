@@ -27,11 +27,17 @@ import kotlinx.serialization.Serializable
 import web.events.*
 import web.storage.sessionStorage
 import web.window.window
+import coil3.compose.setSingletonImageLoaderFactory
+import com.wojtek.holds.utils.newImageLoader
 import kotlin.js.unsafeCast
 import kotlin.reflect.typeOf
 
 @Composable
 fun App() {
+    setSingletonImageLoaderFactory { context ->
+        newImageLoader(context)
+    }
+
     val coroutineScope = rememberCoroutineScope()
     val savedVersion = remember { sessionStorage.getItem("selected_version") ?: DEFAULT_VERSION }
     val savedHolds = remember { sessionStorage.getItem("selected_holds") ?: "" }

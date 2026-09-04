@@ -9,7 +9,13 @@ import com.wojtek.holds.model.HoldConfiguration
 import holds.composeapp.generated.resources.Res
 import kotlinx.serialization.json.Json
 import org.jetbrains.compose.resources.ExperimentalResourceApi
-import org.jetbrains.skia.Image as SkiaImage
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.compose.LocalPlatformContext
+import coil3.compose.asPainter
+import coil3.request.ImageRequest
+import coil3.request.SuccessResult
 
 /**
  * Result of configuration loading operation.
@@ -83,35 +89,56 @@ fun getVersionedImagePath(version: String, imageName: String): String {
 }
 
 /**
- * Loads an image from versioned resources as a Painter.
+ * Loads an image from versioned resources as a Painter using Coil.
+ * Image decoding is performed off the main thread via Coil's WebWorker on JS/WASM.
  *
  * @param version Version identifier (e.g., "v1", "v2")
- * @param imageName Name of the image file (e.g., "wall.png", "empty.png")
+ * @param imageName Name of the image file (e.g., "wall.webp", "empty.webp")
+ * @param context PlatformContext (defaults to PlatformContext.INSTANCE)
+ * @param imageLoader ImageLoader (defaults to SingletonImageLoader.get(context))
  * @return Painter for the image, or null if loading fails
  */
-@OptIn(ExperimentalResourceApi::class)
-suspend fun loadVersionedImage(version: String, imageName: String): Painter? {
+suspend fun loadVersionedImage(
+    version: String,
+    imageName: String,
+    context: PlatformContext = PlatformContext.INSTANCE,
+    imageLoader: ImageLoader = SingletonImageLoader.get(context)
+): Painter? {
     return try {
         val path = getVersionedImagePath(version, imageName)
         val bytes = Res.readBytes(path)
-        val skiaImage = SkiaImage.makeFromEncoded(bytes)
-        val imageBitmap = skiaImage.toComposeImageBitmap()
-        BitmapPainter(imageBitmap)
+        val request = ImageRequest.Builder(context)
+            .data(bytes)
+            .memoryCacheKey("versioned_image:$version:$imageName")
+            .build()
+        val result = imageLoader.execute(request)
+        if (result is SuccessResult) {
+            result.image.asPainter(context)
+        } else {
+            null
+        }
     } catch (e: Exception) {
         null
     }
 }
 
 /**
- * Composable function to load and remember a versioned image.
+ * Composable function to load and remember a versioned image using Coil.
  *
  * @param version Version identifier (e.g., "v1", "v2")
- * @param imageName Name of the image file (e.g., "wall.png", "empty.png")
+ * @param imageName Name of the image file (e.g., "wall.webp", "empty.webp")
+ * @param imageLoader Optional ImageLoader instance
  * @return State containing the loaded Painter, or null if not loaded
  */
 @Composable
-fun rememberVersionedImage(version: String, imageName: String): State<Painter?> =
-    produceState(null) {
-        value = loadVersionedImage(version, imageName)
+fun rememberVersionedImage(
+    version: String,
+    imageName: String,
+    imageLoader: ImageLoader = LocalPlatformContext.current.let { SingletonImageLoader.get(it) }
+): State<Painter?> {
+    val context = LocalPlatformContext.current
+    return produceState<Painter?>(null, version, imageName) {
+        value = loadVersionedImage(version, imageName, context, imageLoader)
     }
+}
 
