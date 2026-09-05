@@ -48,12 +48,22 @@ import com.wojtek.holds.database.ProblemRepository
 import com.wojtek.holds.utils.ProblemNavType
 import kotlinx.serialization.Serializable
 import web.events.*
-import web.storage.sessionStorage
+import web.storage.localStorage
 import web.window.window
 import coil3.compose.setSingletonImageLoaderFactory
 import com.wojtek.holds.utils.newImageLoader
 import kotlin.js.unsafeCast
 import kotlin.reflect.typeOf
+
+private fun parseUrlHashParams(hash: String): Map<String, String> {
+    if (!hash.startsWith("v=")) return emptyMap()
+    return hash.split("&").associate { param ->
+        val parts = param.split("=", limit = 2)
+        val key = parts.getOrNull(0) ?: ""
+        val value = parts.getOrNull(1) ?: ""
+        key to value
+    }
+}
 
 @Composable
 fun App() {
@@ -62,49 +72,45 @@ fun App() {
     }
 
     val coroutineScope = rememberCoroutineScope()
-    val savedVersion = remember { sessionStorage.getItem("selected_version") ?: DEFAULT_VERSION }
-    val savedHolds = remember { sessionStorage.getItem("selected_holds") ?: "" }
-    val savedHoldsSet = remember(savedHolds) {
-        savedHolds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
+    val initRoute = remember { window.location.hash.substringAfter('#', "") }
+    val urlParams = remember(initRoute) { parseUrlHashParams(initRoute) }
+
+    val initialVersion = remember {
+        urlParams["v"] ?: localStorage.getItem("selected_version") ?: DEFAULT_VERSION
+    }
+    val initialHolds = remember {
+        urlParams["holds"] ?: localStorage.getItem("selected_holds") ?: ""
+    }
+    val initialHoldsSet = remember(initialHolds) {
+        initialHolds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
     }
 
     val climbingWallState = remember {
         ClimbingWallState(coroutineScope).apply {
-            selectedHoldIds = savedHoldsSet
+            selectedHoldIds = initialHoldsSet
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        App(climbingWallState) { navController ->
-            val initRoute = window.location.hash.substringAfter('#', "")
+        App(
+            climbingWallState = climbingWallState,
+            initialVersion = initialVersion,
+            initialHolds = initialHolds
+        ) { navController ->
             when {
                 initRoute.startsWith("problems") -> {
                     navController.navigate(ProblemsListRoute)
                 }
 
                 initRoute.startsWith("save") || initRoute.startsWith(SaveDialog.serializer().descriptor.serialName) -> {
-                    navController.navigate(WallRoute(savedVersion, savedHolds))
+                    navController.navigate(WallRoute(initialVersion, initialHolds))
                 }
 
-                // 1. Intercept the new Wall Test route
+                // 1. Intercept the new Wall Test route if different from initial
                 initRoute.startsWith("v=") -> {
-                    println("Navigating to Wall screen from legacy URL")
-
-                    // Reusing your old parsing logic
-                    val params = initRoute.split("&").associate { param ->
-                        val parts = param.split("=", limit = 2)
-                        val key = parts.getOrNull(0) ?: ""
-                        val value = parts.getOrNull(1) ?: ""
-                        key to value
-                    }
-
-                    val version = params["v"] ?: DEFAULT_VERSION
-                    val holds = params["holds"] ?: ""
-                    
-                    val holdsSet = holds.split(",").filter { it.isNotEmpty() }.map { it.toInt() }.toSet()
-                    climbingWallState.selectedHoldIds = holdsSet
-
-                    if (version != savedVersion || holds != savedHolds) {
+                    val version = urlParams["v"] ?: DEFAULT_VERSION
+                    val holds = urlParams["holds"] ?: ""
+                    if (version != initialVersion || holds != initialHolds) {
                         navController.navigate(WallRoute(version, holds))
                     }
                 }
@@ -121,17 +127,12 @@ fun App() {
                         }
                     }
                     manualRoute.startsWith("save") -> {
-                        navController.navigate(WallRoute()) {
+                        navController.navigate(WallRoute(initialVersion, initialHolds)) {
                             launchSingleTop = true
                         }
                     }
                     manualRoute.startsWith("v=") -> {
-                        val params = manualRoute.split("&").associate { param ->
-                            val parts = param.split("=", limit = 2)
-                            val key = parts.getOrNull(0) ?: ""
-                            val value = parts.getOrNull(1) ?: ""
-                            key to value
-                        }
+                        val params = parseUrlHashParams(manualRoute)
                         val version = params["v"] ?: DEFAULT_VERSION
                         val holds = params["holds"] ?: ""
 
@@ -200,22 +201,21 @@ external interface SafeBeforeUnloadEvent : kotlin.js.JsAny {
 @Composable
 internal fun App(
     climbingWallState: ClimbingWallState,
+    initialVersion: String = DEFAULT_VERSION,
+    initialHolds: String = "",
     onNavHostReady: suspend (NavController) -> Unit = {}
 ) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val problemsDatabase = remember { ProblemRepository(coroutineScope) }
 
-    val savedVersion = remember { sessionStorage.getItem("selected_version") ?: DEFAULT_VERSION }
-    val savedHolds = remember { sessionStorage.getItem("selected_holds") ?: "" }
-
     LaunchedEffect(climbingWallState.selectedHoldIds, climbingWallState.configuration) {
         val version = climbingWallState.configuration?.version
         if (version != null) {
-            sessionStorage.setItem("selected_version", version)
+            localStorage.setItem("selected_version", version)
         }
         val holdsString = climbingWallState.selectedHoldIds.sorted().joinToString(",")
-        sessionStorage.setItem("selected_holds", holdsString)
+        localStorage.setItem("selected_holds", holdsString)
     }
 
     val hasUnsavedChanges = climbingWallState.selectedHoldIds.isNotEmpty()
@@ -238,7 +238,7 @@ internal fun App(
 
     NavHost(
         navController = navController,
-        startDestination = WallRoute(savedVersion, savedHolds)
+        startDestination = WallRoute(initialVersion, initialHolds)
     ) {
         composable<SaveDialog>(typeMap = mapOf(typeOf<Problem>() to ProblemNavType)) { backStackEntry ->
             val args = backStackEntry.toRoute<SaveDialog>()
@@ -253,8 +253,11 @@ internal fun App(
             ProblemsListDialog(
                 problemRepository = problemsDatabase,
                 onDialogDismiss = { navController.popBackStack() },
-                loadProblem = {
-                    climbingWallState.selectedHoldIds = it.holdsIds.toSet()
+                loadProblem = { problem ->
+                    if (climbingWallState.configuration?.version != problem.version) {
+                        climbingWallState.loadVersion(problem.version)
+                    }
+                    climbingWallState.selectedHoldIds = problem.holdsIds.toSet()
                 }
             )
         }
